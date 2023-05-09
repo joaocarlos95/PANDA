@@ -1,0 +1,88 @@
+{
+    "Configuration": {
+        "textfsm": false,
+        "commands": {
+            "cisco_ios": ["show running-config"],
+            "cisco_nxos": ["show running-config"],
+            "alcatel_aos": ["show configuration snapshot"]    
+        }
+    },
+    "Device Information": {
+        "textfsm": true,
+        "commands": {
+            "cisco_ios": ["show version"],
+            "cisco_nxos": ["show version"]
+        }
+    },
+    "Device Directory": {
+        "textfsm": true,
+        "commands": {
+            "cisco_ios": ["dir"],
+            "cisco_nxos": ["dir"]
+        }
+    },
+    "File System": {
+        "textfsm": false,
+        "commands": {
+            "cisco_ios": ["show file system"]
+        }
+    },
+    "Interfaces Counters": {
+        "textfsm": true,
+        "clear_counters": {
+            "to_clear": false,
+            "cisco_ios": ["clear counters"]
+        },
+        "commands": {
+            "cisco_ios": ["show interfaces counters"]
+        }
+    },
+    "Interfaces Information": {
+        "textfsm": true,
+        "commands": {
+            "cisco_ios": ["show interfaces"]
+        }
+    },
+    "License": {
+        "textfsm": false,
+        "commands": {
+            "cisco_ios": ["show license status"]
+        }
+    },
+    "MAC Address Table": {
+        "textfsm": true,
+        "commands": {
+            "cisco_ios": ["show mac address-table"]
+        }
+    },
+    "MD5 Checksum": {
+        "textfsm": false,
+        "commands": {
+            "cisco_ios": ["verify /md5"]
+        }
+    },
+    "Neighbors (CDP)": {
+        "textfsm": true,
+        "commands": {
+            "cisco_ios": ["show cdp neighbors detail"],
+            "cisco_nxos": ["show cdp neighbors detail"],
+            "cisco_wlc": ["show cdp neighbors detail"]    
+        }
+    },
+    "Neighbors (LLDP)": {
+        "textfsm": true,
+        "commands": {
+            "cisco_ios": ["show lldp neighbors detail"],
+            "cisco_nxos": ["show lldp neighbors detail"],
+            "alcatel_aos": ["show lldp remote-system"]
+        }
+    },
+    "Network Diagram": {
+        "textfsm": true,
+        "commands": {
+            "cisco_ios": ["show cdp neighbors detail"],
+            "cisco_nxos": ["show cdp neighbors detail"],
+            "cisco_wlc": ["show cdp neighbors detail"]    
+        }
+    }
+}

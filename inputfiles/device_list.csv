@@ -1,0 +1,4 @@
+vendor_os,ip_address,username,password,enable_secret
+cisco_ios,10.100.0.132,joao.costa,DevNet.2023,
+cisco_nxos,10.100.0.133,joao.costa,DevNet.2023,
+alcatel_aos,10.100.0.134,joao.costa,DevNet.2023,
