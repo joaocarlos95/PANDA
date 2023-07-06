@@ -2,39 +2,39 @@
 | CLIENT INFORMATION																						|
 +-----------------------------------------------------------------------------------------------------------+
  Root Directory: main directory for the script output
-	> Documents/Network Automation/NAPymiko/outputfiles
+	> C:\Users\jlcosta\Desktop\Documents\01. Clientes\ANA Aeroportos\02. Automation
 
  Client Name: name of the client (output of the script is saved in a folder with the client name)
-	> DevNet
+	> ANA Aeroportos
 
 +-----------------------------------------------------------------------------------------------------------+
 | KEEPASS INFORMATION 																						|
 +-----------------------------------------------------------------------------------------------------------+
  Keepass Database: directory where the keepass database is stored
-	> Desktop
+	> C:\Users\jlcosta\Desktop\Documents\Credentials.kdbx
 
  NOTE: if not applicable, delete this part and add to the device_list.csv file the username
 	   and password for each device
 
-
 +-----------------------------------------------------------------------------------------------------------+
 | INFORMATION TO BE COLLECTED																				|
 +-----------------------------------------------------------------------------------------------------------+
- [X] Configuration
+ [ ] Configuration
  [-] Device
-	[X] Device Directory
-	[X] Device Information
+	[-] Device Directory
+	[-] Device Information
+	[X] Device Management
  [-] Interfaces
 	[-] Interfaces Counters
-	[X] Interfaces Information
- [X] MAC Address Table
+	[-] Interfaces Information
+ [-] MAC Address Table
  [-] Neighbors
-	[X] CDP Neighbors
-	[X] LLDP Neighbors
+	[✓] CDP Neighbors
+	[ ] LLDP Neighbors
  [-] Network Diagram
 	[-] Network CDP
 	[-] Network LLDP
- [X] License
+ [-] License
  
 
  [ ] Inventory

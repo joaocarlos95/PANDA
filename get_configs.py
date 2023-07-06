@@ -6,7 +6,6 @@ import os
 import sys
 import time
 from multiprocessing import Manager, Process
-from classes import Client
 from getpass import getpass
 from src.classes.client import Client as NC
 from src.classes.colors import Colors
@@ -77,9 +76,8 @@ if __name__ == '__main__':
     script_data = client.generate_data_dict()
     output_parsed_dict = client.generate_config_parsed(script_data)
 
-    if 'Network Diagram' in get_configs_info:
-        graph = client.generate_graph(output_parsed_dict)
+    #if 'Network Diagram' in get_configs_info:
+    #    graph = client.generate_graph(output_parsed_dict)
         # client.generate_diagram(graph)
     
-
     print(f"{Colors.OK_GREEN}[>]{Colors.END} Execution time: {time.time() - start_time} seconds")
