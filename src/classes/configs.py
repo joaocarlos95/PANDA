@@ -1,6 +1,6 @@
 from datetime import datetime
 from netmiko.utilities import get_structured_data
-from OuiLookup import OuiLookup
+#from OuiLookup import OuiLookup
 from src.classes.colors import Colors 
 from src.classes.decorators import write_to_file
 
@@ -147,6 +147,23 @@ class GetConfigs(Configs):
                 print(f"{Colors.NOK_RED}[{self.device.ip_address}]{Colors.END} Couldn't parse the output of the command: {kwargs['command']}")
                 del self.output_parsed
                 return None
+            
+            # For the extreme OS, delete all entries where the protocol is different from CDP
+            if self.device.vendor_os == 'extreme' and self.info == 'CDP Neighbors':
+                output_parsed_tmp = []
+                for item in self.output_parsed:
+                    if item.get('protocol') == 'ciscodp':
+                        del item['protocol']
+                        output_parsed_tmp.append(item)
+                self.output_parsed = output_parsed_tmp
+            # For the extreme OS, delete all entries where the protocol is different from LLDP
+            elif self.device.vendor_os == 'extreme' and self.info == 'CDP Neighbors':
+                output_parsed_tmp = []
+                for item in self.output_parsed:
+                    if item.get('protocol') == 'lldp':
+                        del item['protocol']
+                        output_parsed_tmp.append(item)
+                self.output_parsed = output_parsed_tmp
 
             return self.output_parsed
 

@@ -60,7 +60,7 @@ def write_to_file(func):
             save_file(path, filename, output_data)
         # Create the filename for the JSON file with all the relevant data of the runned script
         elif func.__qualname__ == 'Client.generate_data_dict':
-            path = f"{self.dir}/outputfiles/"
+            path = f"{self.dir}/outputfiles/RAWData/"
             filename = f"[{current_datetime}] script_output.json"
             print(f"{Colors.OK_GREEN}[>]{Colors.END} Saving script output")
             save_file(path, filename, output_data)
@@ -71,7 +71,6 @@ def write_to_file(func):
                 filename = f"[{current_datetime}] {config}.xlsx"
                 print(f"{Colors.OK_GREEN}[>]{Colors.END} Saving data to excel - {config}")
                 save_file(path, filename, output_data[config])
-
 
         return output_data
     return wrapper
