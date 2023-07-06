@@ -73,7 +73,7 @@ class Client:
             path = f"{self.dir}/inputfiles/device_list.csv"
         # If this file is not present in the client directory, open the default one 
         else:
-            path = f"{os.path.dirname(__file__)}/../../inputfiles/device_list.csv"
+            path = f"{os.path.dirname(__file__)}/../inputfiles/device_list.csv"
 
         with open(path, mode='r', encoding='utf-8') as file:
             for row in csv.DictReader(file, skipinitialspace=True,):
@@ -136,7 +136,7 @@ class Client:
         entry = keepass_file.find_entries(group=group, url=ip_address, tags=['SSH', 'Telnet'], recursive=True, first=True)
         if not entry:
             # Find device credentials, using common entry (usually credentials for all devices)
-            entry = keepass_file.find_entries(group=group, title='[Common]', first=True)
+            entry = keepass_file.find_entries(group=group, title='RADIUS', first=True)
             if not entry:
                 print(f"{Colors.NOK_RED}[!]{Colors.END} Couldn't find credentials for device with IP: {ip_address}")
                 raise Exception(f"{Colors.NOK_RED}[!]{Colors.END} Couldn't find credentials for device with IP: {ip_address}")
@@ -148,7 +148,7 @@ class Client:
         '''
         Get list of all supported commands of this script to be used in GetConfigs.
         '''
-        with open(f"{os.path.dirname(__file__)}/../../json_files/commands.json", 'r', encoding='utf-8') as cmds:
+        with open(f"{os.path.dirname(__file__)}/../commands.json", 'r', encoding='utf-8') as cmds:
             self.command_list = json.load(cmds)
         # Define environment variable for TextFSM, so that the package can get the correct templates
         os.environ['NET_TEXTFSM'] = os.path.join(os.path.dirname(__file__), '../../dep/ntc-templates/ntc_templates/templates')
@@ -395,4 +395,4 @@ def generate_graph_from_cdp():
     data = yaml.load(CDP_NEIGHBORS, Loader=yaml.Loader)
     print(data)
 
-generate_graph_from_cdp()
+#generate_graph_from_cdp()
