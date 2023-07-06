@@ -2,9 +2,21 @@
 import inspect
 from netmiko import ConnectHandler
 from src.classes.colors import Colors
-from src.classes.command import Command
 from src.classes.upgrade import Upgrade
 from src.classes.configs import GetConfigs, SetConfigs
+
+
+WITHOUT_ENABLE_SECRET = ['extreme', 'extreme_exos']
+PAGING_DISABLE = {
+    'extreme': {
+        'enable': 'set length 40',
+        'disable': 'set length 0'
+    },
+    'extreme_exos': {
+        'enable': 'enable cli paging session',
+        'disable': 'disable cli paging session'
+    }
+}
 
 class Device():
     '''
@@ -58,6 +70,10 @@ class Device():
             if method == 'ssh': ssh_connect()
             # Connect to the device through Telnet
             else: telnet_connect()
+            
+            # Disable paging to specific devices
+            if self.vendor_os in PAGING_DISABLE.keys():
+                self.connection.send_command(PAGING_DISABLE[self.vendor_os]['disable'])
 
         except Exception as exception:
             if 'No connection could be made because the target machine actively refused it' in str(exception) or \
@@ -99,7 +115,7 @@ class Device():
         if self.connection == None: return
 
         # If not in enable secret mode, enter the enable secret password 
-        if not self.connection.check_enable_mode():
+        if not self.connection.check_enable_mode() and self.vendor_os not in WITHOUT_ENABLE_SECRET:
             self.connection.secret = self.credentials['enable_secret']
             self.connection.enable()
 
@@ -139,6 +155,10 @@ class Device():
 
         # Connection to the device couln't be mande
         if self.connection == None: return
+
+        # Disable paging to specific devices
+        if self.vendor_os in PAGING_DISABLE.keys():
+            self.connection.send_command(PAGING_DISABLE[self.vendor_os]['enable'])
 
         # Disconnect from the device
         self.connection.disconnect()
