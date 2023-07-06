@@ -2,16 +2,19 @@
     "Configuration": {
         "textfsm": false,
         "commands": {
+            "alcatel_aos": ["show configuration snapshot"],
             "cisco_ios": ["show running-config"],
             "cisco_nxos": ["show running-config"],
-            "alcatel_aos": ["show configuration snapshot"]    
+            "extreme": ["show config"],
+            "extreme_exos": ["show config"]
         }
     },
     "Device Information": {
         "textfsm": true,
         "commands": {
             "cisco_ios": ["show version"],
-            "cisco_nxos": ["show version"]
+            "cisco_nxos": ["show version"],
+            "extreme_exos": ["show system"]
         }
     },
     "Device Directory": {
@@ -19,6 +22,13 @@
         "commands": {
             "cisco_ios": ["dir"],
             "cisco_nxos": ["dir"]
+        }
+    },
+    "Device Management": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show webview"],
+            "extreme_exos": ["show switch management"]
         }
     },
     "File System": {
@@ -61,20 +71,24 @@
             "cisco_ios": ["verify /md5"]
         }
     },
-    "Neighbors (CDP)": {
+    "CDP Neighbors": {
         "textfsm": true,
         "commands": {
             "cisco_ios": ["show cdp neighbors detail"],
             "cisco_nxos": ["show cdp neighbors detail"],
-            "cisco_wlc": ["show cdp neighbors detail"]    
+            "cisco_wlc": ["show cdp neighbors detail"],
+            "extreme": ["show neighbors"],
+            "extreme_exos": ["show cdp neighbor detail"]
         }
     },
-    "Neighbors (LLDP)": {
+    "LLDP Neighbors": {
         "textfsm": true,
         "commands": {
+            "alcatel_aos": ["show lldp remote-system"],
             "cisco_ios": ["show lldp neighbors detail"],
             "cisco_nxos": ["show lldp neighbors detail"],
-            "alcatel_aos": ["show lldp remote-system"]
+            "extreme": ["show lldp port remote-info"],
+            "extreme_exos": ["show lldp neighbor detail"]
         }
     },
     "Network Diagram": {
