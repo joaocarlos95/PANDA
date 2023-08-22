@@ -1,0 +1,36 @@
+{# VARIABLES                                                    #}
+{#- ---------------------------------------------------------- -#}
+{% set telnet = device_management.telnet %}
+{% set http = device_management.http %}
+{% set https = device_management.https %}
+
+{#- DESCRIPTION: SSH ACCESS CONFIGURATION                        #}
+{#- ---------------------------------------------------------- -#}
+{% macro ssh_configuration() %}
+set ssh {{ ssh.status }}
+{%- endmacro %}
+
+{#- DESCRIPTION: TELNET ACCESS CONFIGURATION                     #}
+{#- ---------------------------------------------------------- -#}
+{% macro telnet_configuration() %}
+set telnet {{ telnet.status }} all
+{%- endmacro %}
+
+{#- DESCRIPTION: HTTP ACCESS CONFIGURATION                       #}
+{#- ---------------------------------------------------------- -#}
+{% macro http_server_configuration() %}
+set webview {{ http.status }}
+{%- endmacro %}
+
+
+{#- DESCRIPTION: DEVICE ACCESS DEFAULT CONFIGURATION             #}
+{#- ---------------------------------------------------------- -#}
+{% if "ssh" in device_management -%}
+    {{ ssh_configuration() }}
+{% endif %}
+{% if "telnet" in device_management -%}
+    {{ telnet_configuration() }}
+{% endif %}
+{% if "http" in device_management -%}
+    {{ http_server_configuration() }}
+{% endif %}

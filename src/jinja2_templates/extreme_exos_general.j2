@@ -1,0 +1,38 @@
+{#- Basic configuration -#}
+configure snmp sysName {{ general.hostname }}
+configure snmp sysLocation {{ general.location }}
+configure snmp sysContact {{ general.contact }}
+
+configure account all password-policy char-validation all-char-groups
+configure account all password-policy min-length 15
+configure account all password-policy history 10
+configure account all password-policy lockout-on-login-failures on
+configure cli max-failed-logins 3
+configure account all password-policy lockout-time-period 3
+
+{# COMMENT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+configure banner before-login save-to-configuration
+ 
++---------------------------------------------------------------------+
+|                            EXTREME DEVICE                           |
++---------------------------------------------------------------------+
+|                                                                     |
+|                           !!! WARNING !!!                           |
+|              UNAUTHORIZED ACCESS IS STRICTLY PROHIBITED             |
+|                                                                     |
+|   This device is property of ANA, Aeroportos de Portugal.           |
+|   Unauthorized access, tampering, or any malicious activity is      |
+|   strictly forbidden.                                               |
+|                                                                     |
+|   All access attempts are recorded.                                 |
+|                                                                     |
+|   By proceeding, you agree to comply with the security policies     |
+|   and legal agreements in place.                                    |
+|                                                                     |
++---------------------------------------------------------------------+
+ 
+ > Device Name: {{ general.hostname }}
+   Location: {{ general.location }}
+   Contact: {{ general.contact }}
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< #}

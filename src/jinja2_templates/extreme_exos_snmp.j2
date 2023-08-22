@@ -1,15 +1,29 @@
 {#- Configure SNMPv3 with traps -#}
 
-configure snmpv3 add user "{{snmp.user}}" authentication sha {{snmp.password}} privacy aes {{snmp.privacy_password}}
-configure snmpv3 add group "{{snmp.group}}" user "{{snmp.user}}" sec-model usm
-configure snmpv3 add access "{{snmp.group}}" sec-model usm sec-level priv notify-view defaultAdminView read-view defaultAdminView write-view defaultAdminView
-configure snmpv3 add target-addr "{{snmp.server.name}}" param "{{snmp.server.name}}_Parameters" ipaddress {{snmp.server.ip_address}} tag-list "{{snmp.server.name}}_Tag" 
-configure snmpv3 add target-params "{{snmp.server.name}}_Parameters" user {{snmp.user}} mp-model snmpv3 sec-model usm sec-level priv 
-configure snmpv3 add notify "{{snmp.server.name}}_Notification" tag "{{snmp.server.name}}_Tag" type inform
-configure snmpv3 add filter-profile "{{snmp.server.name}}_Filter" param "{{snmp.server.name}}_Parameters"
-configure snmpv3 add filter "{{snmp.server.name}}_Filter" subtree 1.0/00 type included
-{% for oid in snmp.oid_excluded %}
-    configure snmpv3 add filter "{{snmp.server.name}}_Filter" subtree {{oid}} type excluded
-{% endfor %}
-disable snmp access snmpv-v1v2c
-enable snmp access snmpv3
+{% if snmp.snmpv3 is defined %}
+    configure snmpv3 add user "{{snmp.snmpv3.user}}" authentication sha {{snmp.snmpv3.password}} privacy aes {{snmp.snmpv3.privacy_password}}
+    configure snmpv3 add group "{{snmp.snmpv3.server_name}}_Group" user "{{snmp.snmpv3.user}}" sec-model usm
+    configure snmpv3 add access "{{snmp.snmpv3.server_name}}_Group" sec-model usm sec-level priv notify-view defaultAdminView read-view defaultAdminView write-view defaultAdminView
+    configure snmpv3 add target-addr "{{snmp.snmpv3.server_name}}_Address" param "{{snmp.snmpv3.server_name}}_Parameters" ipaddress {{snmp.snmpv3.server_address}} tag-list "{{snmp.snmpv3.server_name}}_Tag" 
+    configure snmpv3 add target-params "{{snmp.snmpv3.server_name}}_Parameters" user {{snmp.snmpv3.user}} mp-model snmpv3 sec-model usm sec-level priv 
+    configure snmpv3 add notify "{{snmp.snmpv3.server_name}}_Notification" tag "{{snmp.snmpv3.server_name}}_Tag" type inform
+    configure snmpv3 add filter-profile "{{snmp.snmpv3.server_name}}_Filter" param "{{snmp.snmpv3.server_name}}_Parameters"
+    configure snmpv3 add filter "{{snmp.snmpv3.server_name}}_Filter" subtree 1.0/00 type included
+    {% for oid in snmp.oid_excluded %}
+        configure snmpv3 add filter "{{snmp.snmpv3.server_name}}_Filter" subtree {{oid}} type excluded
+    {% endfor %}
+    enable snmp access snmpv3
+{% else %}
+    disable snmp access snmpv3
+{% endif %}
+
+
+{#- Configure SNMPv2c -#}
+{% if snmp.snmpv2c is defined %}
+    configure snmpv3 add group "{{snmp.snmpv2c.server_name}}_Group" user "{{snmp.snmpv2c.server_name}}_User" sec-model snmpv2c
+    configure snmpv3 add access "{{snmp.snmpv2c.server_name}}_Group" sec-model snmpv2c sec-level noauth read-view "defaultAdminView" notify-view "defaultAdminView"
+    configure snmpv3 add community "{{snmp.snmpv2c.community}}" name {{snmp.snmpv2c.community}}" user "{{snmp.snmpv2c.server_name}}_User"
+    enable snmp access snmp-v1v2c
+{% else %}
+    disable snmp access snmp-v1v2c
+{% endif %}

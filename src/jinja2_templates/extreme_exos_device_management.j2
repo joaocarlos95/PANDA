@@ -1,0 +1,32 @@
+{#- Device management configuration -#}
+
+{% if device_management.ip.address != "" %}
+    configure vlan {{ device_management.ip.vlan }} ipaddress {{ device_management.ip.address }} {{ device_management.ip.mask }}
+    configure iproute add default {{ device_management.ip.gw }}
+{% endif %}
+
+{#- SSH access -#}
+{% if "ssh" in device_management.remote_access %}
+    enable ssh2
+    configure ssh2 rekey time-interval 30
+    configure cli idle-timeout 10
+{% else %}
+    disable ssh2
+{% endif %}
+
+{#- Telnet access -#}
+{% if "telnet" in device_management.remote_access %}
+    enable telnet
+{% else %}
+    disable telnet
+{% endif %}
+
+{#- Web access -#}
+{% if "web" in device_management.remote_access %}
+    disable web http
+    configure ssl certificate privkeylen 2048 country PT organization ANA common-name ana.pt
+    enable web https
+{% else %}
+    disable web http
+    disable web https
+{% endif %}

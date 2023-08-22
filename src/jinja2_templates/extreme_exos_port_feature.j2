@@ -1,0 +1,28 @@
+{#- Port feature -#}
+
+{% for feature in port_feature %}
+    {% if feature == "edgeport" %}
+        {% for port in feature %}
+            configure stpd s0 ports link-type edge {{ port }} edge-safeguard enable bpdu-restrict recovery-timeout 180
+        {% endfor %}
+    {% elif feature == "maclock" %}
+        {% for port in feature %}
+            configure mac-locking ports {{ port.id }} first-arrival limit-learning {{ port.limit }}
+            configure mac-locking ports {{ port.id }} first-arrival aging enable
+            configure mac-locking ports {{ port.id }} trap violation on
+            configure mac-locking ports {{ port.id }} log violation on
+        {% endfor %}
+    {% elif feature == "inline_power" %}
+        {% for port in feature.disabled_ports %}
+            disable inline-power ports {{ port }}
+        {% endfor %}
+        {% for port in feature.enabled_ports %}
+            enable inline-power ports {{ port }}
+        {% endfor %}
+    {% endif %}
+    {% elif feature == "snmp" %}
+        {% for port in feature.trap_up_down_disable_ports %}
+            disable snmp traps port-up-down ports {{ port }}
+        {% endfor %}
+    {% endif %}            
+{% endfor %}

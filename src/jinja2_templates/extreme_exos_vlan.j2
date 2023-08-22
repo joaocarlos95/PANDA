@@ -1,0 +1,40 @@
+{#- VLAN creation -#}
+
+{% for vlan in vlan %}
+    create vlan "{{ vlan.name }}" tag {{ vlan.id }}
+    {% if vlan.tagged_ports is defined %}
+        {% for port in vlan.tagged_ports %}
+            configure vlan {{ vlan.id }} add ports {{ port.id }} tagged
+            {% if port.description is defined %}
+                configure ports {{ port.id }} display-string {{ port.description }}
+            {% endif %}
+            {% if port.poe is defined %}
+                enable inline-power ports {{ port.id }} 
+            {% else %}
+                disable inline-power ports {{ port.id }}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% if vlan.untagged_ports is defined %}
+        {% for port in vlan.untagged_ports %}
+            configure vlan {{ vlan.id }} add ports {{ port.id }} untagged
+            {% if port.description is defined %}
+                configure ports {{ port.id }} display-string {{ port.description }}
+            {% endif %}
+            {% if port.poe is defined %}
+                enable inline-power ports {{ port.id }} 
+            {% else %}
+                disable inline-power ports {{ port.id }}
+            {% endif %}
+            {% if port.maclock_limit is defined %}
+                configure mac-locking ports {{ port.id }} first-arrival limit-learning {{ port.maclock_limit }}
+                configure mac-locking ports {{ port.id }} first-arrival aging enable
+                configure mac-locking ports {{ port.id }} trap violation on
+                configure mac-locking ports {{ port.id }} log violation on
+            {% endif %}
+            
+            configure stpd s0 ports link-type edge {{ port.id }} edge-safeguard enable bpdu-restrict recovery-timeout 180
+            disable snmp traps port-up-down ports {{ port.id }}
+        {% endfor %}
+    {% endif %}
+{% endfor %}

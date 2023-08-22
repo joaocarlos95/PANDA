@@ -1,0 +1,6 @@
+{#- CDP (Cisco Discovery Protocol) configuration -#}
+
+disable cdp ports all
+enable cdp ports {{ cdp.enabled_ports | join(',') }}
+configure cdp management-address vlan {{ cdp.mgmt_vlan }} primary-ip
+configure cdp device-id system-name

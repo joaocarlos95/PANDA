@@ -1,0 +1,21 @@
+{#- Configure TACACS+ server -#}
+
+{% if tacacs.primary_server is defined %}
+    configure tacacs primary server {{tacacs.primary_server.address}} {{tacacs.primary_server.port}} client-ip {{device_management.ip.address}} vr {{tacacs.primary_server.vrf | default("VR-Default", true)}}
+    configure tacacs primary shared-secret {{tacacs.primary_server.shared_secret}}
+    configure tacacs fallback disallow
+    configure tacacs priv-lvl required
+    enable tacacs
+    enable tacacs-authorization
+{% else %}
+    disable tacacs
+    disable tacacs-authorization
+{% endif %}
+{% if tacacs.accounting_primary_server is defined and tacacs.primary_server is defined %}
+    configure tacacs-accounting primary server {{tacacs.accounting_primary_server.address}} {{tacacs.accounting_primary_server.port}} client-ip {{device_management.ip.address}} vr {{tacacs.accounting_primary_server.vrf | default("VR-Default", true)}}
+    configure tacacs-accounting primary shared-secret {{tacacs.accounting_primary_server.shared_secret}}
+    enable tacacs-accounting
+{% else %}
+    disable tacacs-accounting
+{% endif %}
+
