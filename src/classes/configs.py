@@ -1,3 +1,4 @@
+import textfsm
 from datetime import datetime
 from netmiko.utilities import get_structured_data
 #from OuiLookup import OuiLookup
@@ -38,15 +39,24 @@ class SetConfigs(Configs):
         templates accordingly 
         '''
 
+        # List of characters used by devices to comment a line
+        comment_char = {
+            'cisco_ios': '!',
+            'extreme': '!',
+            'extreme_exos': '#'
+        }
+
         data = {
-            "config_blocks": config_blocks,
-            "vendor_os": self.device.vendor_os,
-            "ip_address": self.device.ip_address,
-            "timestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            'config_blocks': config_blocks,
+            'vendor_os': self.device.vendor_os,
+            'ip_address': self.device.ip_address,
+            'timestamp': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            'comment_char': comment_char[self.device.vendor_os],
             **self.device.client.j2_data
         }
         
-        self.config = self.device.client.j2_template.render(data)
+        config = self.device.client.j2_template.render(data)
+        self.config = '\n'.join(line.strip() for line in config.split('\n'))
         return self.config
 
     ### TO BE DONE: Check if configuration was successfully applied to the device
@@ -70,7 +80,12 @@ class SetConfigs(Configs):
             # Apply configuration on the device, sending a list of commands
             print(f"{Colors.OK_GREEN}[{self.device.ip_address}]{Colors.END} Applying configuration")
             self.output = self.device.connection.send_config_set(data.split('\n'))
-            self.device.connection.save_config()
+
+            # Method save_config doesn't work in extreme devices
+            if self.device.vendor_os == 'extreme':
+                pass
+            else:
+                self.device.connection.save_config()
             self.status = "Done"
 
             if 'Invalid input detected' in self.output:
@@ -108,7 +123,7 @@ class GetConfigs(Configs):
         # Connection to the device couln't be made
         if self.device.connection == None:
             self.status = self.device.status
-            raise Exception(f"[{self.device.ip_address}] {self.device.status}")
+            return None
         # Reconnect to the device, since connection was closed
         elif not self.device.connection.is_alive():
             self.device.connect()
@@ -152,7 +167,7 @@ class GetConfigs(Configs):
             if self.device.vendor_os == 'extreme' and self.info == 'CDP Neighbors':
                 output_parsed_tmp = []
                 for item in self.output_parsed:
-                    if item.get('protocol') == 'ciscodp':
+                    if item.get('protocol') == 'ciscodp' or item.get('protocol') == 'Ci':
                         del item['protocol']
                         output_parsed_tmp.append(item)
                 self.output_parsed = output_parsed_tmp
@@ -160,7 +175,7 @@ class GetConfigs(Configs):
             elif self.device.vendor_os == 'extreme' and self.info == 'CDP Neighbors':
                 output_parsed_tmp = []
                 for item in self.output_parsed:
-                    if item.get('protocol') == 'lldp':
+                    if item.get('protocol') == 'lldp' or item.get('protocol') == 'LL':
                         del item['protocol']
                         output_parsed_tmp.append(item)
                 self.output_parsed = output_parsed_tmp
@@ -169,6 +184,7 @@ class GetConfigs(Configs):
 
         except Exception as exception:
             print(f"{Colors.NOK_RED}[{self.device.ip_address}]{Colors.END} Couldn't parse the output of the command: {kwargs['command']}")
+            print(exception)
     
     def get_mac_vendor(self, mac: str) -> str:
         '''

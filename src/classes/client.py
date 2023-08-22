@@ -36,7 +36,7 @@ class Client:
         self.keepass = keepass
 
         self.get_devices_from_csv()
-
+        print(f"{Colors.OK_GREEN}[>]{Colors.END} Number of devices being interventioned: {len(self.device_list)}")
 
     def get_j2_template(self):
         '''
@@ -47,7 +47,7 @@ class Client:
 
         # Load the base template and assign it to a variable for further usage
         env = Environment(
-            loader=FileSystemLoader(f"{os.path.dirname(__file__)}/../../dev/jinja2_templates"), 
+            loader=FileSystemLoader(f"{os.path.dirname(__file__)}/../jinja2_templates"), 
             trim_blocks=True, 
             lstrip_blocks=True)
         self.j2_template = env.get_template('base_config.j2')
@@ -165,6 +165,17 @@ class Client:
             for future in as_completed(future_list):
                 future.result()
 
+    def set_concurrent_configs(self, config_blocks: list) -> None:
+        '''
+        Function used to interact with the devices in a concurrent way (using concurrent.futures),
+        takind advantage of threading to get information from the devices at the same time
+        '''
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_list = [executor.submit(device.set_configs, config_blocks) for device in self.device_list]
+            for future in as_completed(future_list):
+                future.result()
+
     @write_to_file
     def generate_data_dict(self) -> dict:
         '''
@@ -193,7 +204,7 @@ class Client:
                 config_dict = config_obj.__dict__.copy()
                 del config_dict['device']
                 config_list.append(config_dict)
-            
+
             # Replace the config object list by a config dict list
             device_dict['config_list'] = config_list
             device_list.append(device_dict)
@@ -202,79 +213,77 @@ class Client:
         return client_dict
 
     @write_to_file
-    def generate_config_parsed(self, script_data: dict):
+    def generate_config_parsed(self, script_data: dict) -> dict:
         '''
         Merge output parsed from TextFSM package from all devices in a single file
         '''
 
         print(f"{Colors.OK_GREEN}[>]{Colors.END} Merging output parsed")
         output_parsed_dict = {}
+
         for device in script_data['device_list']:
+            merged_output = {
+                'device_hostname': device['hostname'],
+                'device_ip_address': device['ip_address']
+            }
             for config in device['config_list']:
-                if 'output_parsed' in config.keys():
+                config_info = config.get('info')
+                output_parsed_list = []
+                if config and len(config) > 0 and 'output_parsed' in config.keys() and config['output_parsed']:
                     for output_parsed in config['output_parsed']:
-                        output_parsed_dict.setdefault(config['info'], [])
-                        output_parsed_dict[config['info']].append(({
-                            'device_hostname': device['hostname'],
-                            'device_ip_address': device['ip_address'],
-                            **output_parsed
-                        }))
+                        merged_output.update(output_parsed)
+                        output_parsed_list.append(merged_output.copy())
+                else:
+                    output_parsed_list.append(merged_output)
+            output_parsed_dict.setdefault(config_info, []).extend(output_parsed_list)
 
         return output_parsed_dict
-
 
     def generate_graph_from_cdp(self, output_parsed:dict) -> dict:
         '''
         Generate a dict variable representing network diagram based on neighbors adjancies
         '''
 
-        print(json.dumps(output_parsed, indent=2))
+        graph = {'nodes': [], 'links': []}
+        for entry in output_parsed['Network Diagram CDP']:
+            device_ip_address = entry['device_ip_address'] if 'device_ip_address' in entry else ''
+            device_hostname = entry['device_hostname'] if 'device_hostname' in entry else ''
+            remote_ip_address = entry['remote_ip_address'] if 'remote_ip_address' in entry else ''
+            remote_host = entry['remote_host'] if 'remote_host' in entry else ''
+            local_port = entry['local_port'] if 'local_port' in entry else ''
+            remote_port = entry['remote_port'] if 'remote_port' in entry else ''
 
+            graph['nodes'].append({
+                'id': remote_ip_address,
+                'top_label': remote_host,
+                'bottom_label': remote_ip_address
+            })
+            graph['links'].append({
+                'source': device_ip_address, 
+                'target': remote_ip_address,
+                'src_label':local_port,
+                'trgt_label': remote_port
+            })
+        graph['nodes'].append({
+            'id': device_ip_address,
+            'top_label': device_hostname,
+            'bottom_label': device_ip_address
+        })
 
+        return graph
 
-
-    def generate_diagram(self, **graph):
+    @write_to_file
+    def generate_diagram(self, graph):
         '''
         Generate network diagram in drawio format, based on neighbors adjancies
         '''
 
+        print(f"{Colors.OK_GREEN}[>]{Colors.END} Generating Network Diagram")
         diagram = yed_diagram()
-        diagram
-        graph = {
-            'nodes': [
-                
-            ],
-            'links': []
-        }
-        
-        for device in self.report:
-            graph['nodes'].append({
-                'id': device['ip_address'], 
-                'top_label': device['hostname']
-            })
-            for command in device['command_list']:
-                if 'Network Diagram' in command['info']:
-                    for neighbor in command['output_parsed']:
-                        graph['nodes'].append({
-                            'id': neighbor['management_ip'],
-                            'top_label': neighbor['destination_host'],
-                            'bottom_label': neighbor['platform'],
-                            'description': f"capabilities: {neighbor['capabilities']}"
-                        })
-                        graph['links'].append({
-                            'source': device['ip_address'], 
-                            'target': neighbor['management_ip'],
-                            'src_label': neighbor['local_port'],
-                            'trgt_label': neighbor['remote_port']
-                        })
-
         diagram.from_dict(graph)
         diagram.layout(algo='tree')
 
-        print('[>] Generating Network Diagram')
-        current_datetime = date.today().strftime('%Y%m%d')
-        diagram.dump_file(filename=f"[{current_datetime}] Network Diagram.graphml", folder=f"{self.dir}/outputfiles")
-
+        return diagram
 
 
 
@@ -350,49 +359,3 @@ class Client:
                 })
 
         self.write_csv(report, filename='Upgrade Report')
-
-
-
-
-def generate_graph_from_cdp():
-
-    CDP_NEIGHBORS = '''
-        parsed_sample:
-        - platform: "cisco WS-C2960-8TC-L"
-            management_ip: "10.1.1.2"
-            software_version: "Cisco IOS Software, C2960 Software (C2960-LANBASEK9-M), Version\
-            \ 12.2(55)SE9, RELEASE SOFTWARE (fc1)"
-            destination_host: "desktop-switch"
-            remote_port: "GigabitEthernet0/1"
-            local_port: "GigabitEthernet1/0/16"
-            capabilities: "Switch IGMP"
-        - platform: "Cisco 3825"
-            management_ip: "10.1.1.1"
-            software_version: "Cisco IOS Software, 3800 Software (C3825-ADVENTERPRISEK9-M),\
-            \ Version 12.4(24)T1, RELEASE SOFTWARE (fc3)"
-            destination_host: "ce-router"
-            remote_port: "GigabitEthernet0/0"
-            local_port: "GigabitEthernet1/0/22"
-            capabilities: "Router Switch IGMP"
-        - platform: "VMware"
-            management_ip: "10.1.1.232"
-            software_version: "Linux 2.6.32-431.20.3.el6.x86_64 #1 SMP Fri Jun 6 18:30:54\
-            \ EDT 2014 CCM:10.5.2.10000-5.i386"
-            destination_host: "server"
-            remote_port: "eth0"
-            local_port: "GigabitEthernet1/0/19"
-            capabilities: "Host"
-        - platform: "Cisco "
-            management_ip: ""
-            software_version: "Cisco IOS Software, vios_l2 Software (vios_l2-ADVENTERPRISEK9-M),\
-            \ Version 15.2(CML_NIGHTLY_20150414)FLO_DSGS7, EARLY DEPLOYMENT DEVELOPMENT\
-            \ BUILD, synced to  DSGS_PI5_POSTCOLLAPSE_TEAM_TRACK_CLONE"
-            destination_host: "vIOS-L2-1"
-            remote_port: "GigabitEthernet0/3"
-            local_port: "GigabitEthernet0/3"
-            capabilities: "Router Switch IGMP"
-    '''
-    data = yaml.load(CDP_NEIGHBORS, Loader=yaml.Loader)
-    print(data)
-
-#generate_graph_from_cdp()

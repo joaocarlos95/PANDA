@@ -32,6 +32,8 @@ class Device():
         self.vendor_os = vendor_os
         self.ip_address = ip_address
         self.credentials = credentials
+        self.hostname = None
+        self.connection = None
         self.config_list = []
 
     def clear_counters(self):
@@ -80,6 +82,7 @@ class Device():
                 'Connection refused' in str(exception):
                 # Connect to the device through Telnet
                 if method == 'ssh':
+                    print(f"{Colors.OK_YELLOW}[{self.ip_address}]{Colors.END} Couldn't connect via SSH, trying via Telnet")
                     self.connect('telnet')
                 else:          
                     print(f"{Colors.NOK_RED}[{self.ip_address}]{Colors.END} Connection refused by device")
@@ -87,6 +90,7 @@ class Device():
                     return
             elif 'TCP connection to device failed' in str(exception) or 'Operation timed out' in str(exception):
                 if method == 'ssh':
+                    print(f"{Colors.OK_YELLOW}[{self.ip_address}]{Colors.END} Couldn't connect via SSH, trying via Telnet")
                     self.connect('telnet')
                 else:
                     print(f"{Colors.NOK_RED}[{self.ip_address}]{Colors.END} TCP connection failed")
@@ -98,13 +102,15 @@ class Device():
                 return
             elif 'must be exactly 1024, 2048, 3072, or 4096 bits long' in str(exception):
                 if method == 'ssh':
+                    print(f"{Colors.OK_YELLOW}[{self.ip_address}]{Colors.END} Couldn't connect via SSH, trying via Telnet")
                     self.connect('telnet')
                 else:
                     print(f"{Colors.NOK_RED}[{self.ip_address}]{Colors.END} Issue with the SSH keys")
                     self.status = 'Issue with the SSH keys'
                     return
             elif 'A connection attempt failed' in str(exception) or 'No existing session' in \
-                str(exception) or "Unsupported 'device_type'" in str(exception):
+                str(exception) or "Unsupported 'device_type'" in str(exception) or \
+                'An established connection was aborted by the software in your host machine' in str(exception):
                 print(f"{Colors.NOK_RED}[{self.ip_address}]{Colors.END} Couldn't connect")
                 self.status = "Couldn't connect"
                 return
@@ -123,15 +129,6 @@ class Device():
         self.hostname = self.connection.find_prompt()[:-1]
         self.status = 'Connected'
         print(f"{Colors.OK_GREEN}[{self.ip_address}]{Colors.END} Connected")
-
-    def create_command(self, info, txt_command, textfsm: bool = False):
-        ''' Create a Command object for the command to be issued on the device, and append it
-            on the list of command objects for the device '''
-
-        # Create a command object and append it to the command list of the device
-        command = Command(self, info, txt_command, textfsm)
-        self.command_list.append(command)
-        return command
 
     def delete_file(self, flash, file):
         ''' Delete file from deviice flash '''
@@ -223,21 +220,6 @@ class Device():
         else:
             return False
     
-    def run_get_configs(self, get_configs_info, command_list, report):
-        ''' Initiate the process of acquire device information '''
-
-        global COMMAND_LIST
-        COMMAND_LIST = command_list
-
-        # Connect to the device
-        self.connect()
-        # Get the desired configurations
-        self.get_configs(get_configs_info)
-        # Disconnect from the device
-        self.disconnect()
-        # Generate device report and append it to the shared variable
-        self.generate_report(report)           
-
     def run_set_configs(self, set_configs_info, report):
         ''' Initiate the process of acquire device information '''
 
@@ -295,12 +277,18 @@ class Device():
         configuration blocks defined by the user.
         '''
 
-        set_config = SetConfigs(self)
+        # Connect to the device
         self.connect()
-        # Generate configuration and apply it to the device
+        # Couldn't connect to the device
+        if not self.connection: return
+
+        # Create a SetConfigs object, generate the configuration and send it to the device 
+        set_config = SetConfigs(self)
         config = set_config.render_template(config_blocks)
-        self.config_list.append(config)
-        set_config.send_config(data=config)
+        #self.config_list.append(config)
+        #set_config.send_config(data=config)
+        
+        # Disconnect from the device
         self.disconnect()
     
     
@@ -310,21 +298,28 @@ class Device():
         command, a GetConfigs object is created and runned.
         '''
 
+        # Connect to the device
         self.connect()
+
         for info in get_configs_info:
             # Get each command to be runned on the device
             for command in self.client.command_list[info]['commands'][self.vendor_os]:
                 # Create a GetConfigs object and run the command on the device 
                 config = GetConfigs(self, info=info)
                 self.config_list.append(config)
-                output = config.get_config(command=command)
-                output_parsed = config.parse_output(raw_output=output, platform=self.vendor_os, command=command)
+                
+                # If there is a connection to the device, execute the commands
+                if self.connection:
+                    output = config.get_config(command=command)
+                    # Parse the output of the command executed
+                    output_parsed = config.parse_output(raw_output=output, platform=self.vendor_os, command=command)
 
-                # Append to the output_parsed, the vendor of the MAC address found on the port
-                if config.info == 'MAC Address Table':
-                    for mac in output_parsed:
-                        mac['vendor'] = config.get_mac_vendor(mac['destination_address'])
+                    # Append to the output_parsed, the vendor of the MAC address found on the port
+                    if config.info == 'MAC Address Table':
+                        for mac in output_parsed:
+                            mac['vendor'] = config.get_mac_vendor(mac['destination_address'])
 
+        # Disconnect from the device
         self.disconnect()
 
     # def serial_connect(self):

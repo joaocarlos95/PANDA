@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import pandas as pd
 from datetime import datetime
 from src.classes.colors import Colors
@@ -16,6 +17,7 @@ def write_to_file(func):
             '''
             Save the data in the corresponding file, using the appropriate method to do it
             '''
+
             # If there ir nothing to write in the file, exit this function
             if not data:
                 print(f"{Colors.NOK_RED}[{self.device.ip_address}]{Colors.END} Output not saved due to lack of data")
@@ -23,10 +25,16 @@ def write_to_file(func):
             # Create the folder where the file will be written, only if doesn't exist yet
             os.makedirs(f"{path}", exist_ok=True)
 
+            # Remove special characters from the filename
+            filename = re.sub(r'[\\/*?:"<>|]', '', filename)
+
             # Save .xlsx files using pandas
             if filename.endswith('.xlsx'):
                 df = pd.DataFrame(data=data)
                 df.to_excel(f"{path}/{filename}", index=False)
+            # Save .grphml files
+            elif filename.endswith('.graphml'):
+                data.dump_file(filename=filename, folder=path)
             # Save remaining types of files, with opening a file with write permissions
             else:
                 with open(f"{path}/{filename}", mode='w', encoding='utf-8') as file:
@@ -49,14 +57,14 @@ def write_to_file(func):
             print(f"{Colors.OK_GREEN}[{self.device.ip_address}]{Colors.END} Saving output: {command}")
             save_file(path, filename, output_data)
         elif func.__qualname__ == 'SetConfigs.render_template':
-            path = f"{self.device.client.dir}/outputfiles/{func.__qualname__.split('.')[0]}/jinja2_config"
+            path = f"{self.device.client.dir}/outputfiles/{func.__qualname__.split('.')[0]}/jinja2_config/{current_date}"
             filename = f"[{current_datetime}] {self.device.hostname} ({self.device.ip_address}) - jinja2_config.txt"
             print(f"{Colors.OK_GREEN}[{self.device.ip_address}]{Colors.END} Saving output: jinja2_config")
             save_file(path, filename, output_data)
         elif func.__qualname__ == 'SetConfigs.send_config':
-            path = f"{self.device.client.dir}/outputfiles/{func.__qualname__.split('.')[0]}/jinja2_config_output"
+            path = f"{self.device.client.dir}/outputfiles/{func.__qualname__.split('.')[0]}/jinja2_config_output/{current_date}"
             filename = f"[{current_datetime}] {self.device.hostname} ({self.device.ip_address}) - jinja2_config_output.txt"
-            print(f"{Colors.OK_GREEN}[{self.device.ip_address}]{Colors.END} Saving output: {command}")
+            print(f"{Colors.OK_GREEN}[{self.device.ip_address}]{Colors.END} Saving output: jinja2_config_output")
             save_file(path, filename, output_data)
         # Create the filename for the JSON file with all the relevant data of the runned script
         elif func.__qualname__ == 'Client.generate_data_dict':
@@ -71,6 +79,12 @@ def write_to_file(func):
                 filename = f"[{current_datetime}] {config}.xlsx"
                 print(f"{Colors.OK_GREEN}[>]{Colors.END} Saving data to excel - {config}")
                 save_file(path, filename, output_data[config])
+        # Create network diagram
+        elif func.__qualname__ == 'Client.generate_diagram':
+            path = f"{self.dir}/outputfiles/GetConfigs/Network Diagram/{current_date}"
+            filename = f"[{current_datetime}] Network Diagram.graphml"
+            print(f"{Colors.OK_GREEN}[>]{Colors.END} Saving diagram")
+            save_file(path, filename, output_data)
 
         return output_data
     return wrapper
