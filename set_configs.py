@@ -33,19 +33,19 @@ if __name__ == '__main__':
                 if '>' in line and len(set(line)) > 2 and '.kdbx' in line:
                     keepass = {
                         'filename': line.split('>')[1].strip(),
-                        'password': getpass(f"{Colors.OK_YELLOW}{Colors.END} Please insert your Keepass password: ")
+                        'password': getpass(f"{Colors.OK_YELLOW}[>]{Colors.END} Please insert your Keepass password: ")
                     }
             elif '[x]' in line or '[X]' in line:
                 info_requested = line.split('] ')[1].rstrip().lower().replace(" ", "_")
                 config_blocks.append(info_requested)
 
     # Confirm the configurations to be generated and applied to the devices
-    print(f"{Colors.OK_YELLOW}{Colors.END} Please confirm the following configuration blocks (Yes or No): ")
+    print(f"{Colors.OK_YELLOW}[>]{Colors.END} Please confirm the following configuration blocks (Yes or No): ")
     for info_requested in config_blocks:
         print(f"       > {info_requested}")
     while True:
         try:
-            if validations[input('    Answear: ').lower()]:
+            if validations[input(f"    {Colors.WHITE_UNDER}Answer{Colors.END}: ").lower()]:
                 break
             else:
                 print(f"{Colors.NOK_RED}{Colors.END} Please select the proper configuration blocks.")
@@ -60,18 +60,11 @@ if __name__ == '__main__':
     client.get_j2_template()
     client.get_j2_data()
     
-    # Generate and apply the configuration for each device
-    [device.set_configs(config_blocks) for device in client.device_list]
+    # Get device information for each information requested
+    client.set_concurrent_configs(config_blocks=config_blocks)
 
-    #process_list = [Process(target=device.set_configs, args=(config_blocks)) for device in client.device_list]
-    #[process.start() for process in process_list]
-    #[process.join() for process in process_list]
-    
-    # client.report = report
-    # client.generate_config_report()
-    # client.generate_config_parsed()
-
-    # with open(f"{client.dir}/outputfiles/script_output_set.json", 'w') as outfile:
-    #     json.dump(list(report), outfile, indent=2)
+    # # Generate script data, converting all class objects to nested dicts
+    # script_data = client.generate_data_dict()
+    # output_parsed_dict = client.generate_config_parsed(script_data)
 
     print(f"Execution time: {time.time() - start_time} seconds")

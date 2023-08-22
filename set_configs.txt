@@ -2,16 +2,16 @@
 | CLIENT INFORMATION																						|
 +-----------------------------------------------------------------------------------------------------------+
  Root Directory: main directory for the script output
-	> C:\Users\joao.costa\OneDrive - Warpcom Services S.A\Warpcom\01. Clientes\Galp\04. Automation
+	> C:\Users\jlcosta\Desktop\Documents\01. Clientes\ANA Aeroportos\03. Automation
 
  Client Name: name of the client (output of the script is saved in a folder with the client name)
-	> Galp
+	> ANA Aeroportos
 
 +-----------------------------------------------------------------------------------------------------------+
 | KEEPASS INFORMATION 																						|
 +-----------------------------------------------------------------------------------------------------------+
  Keepass Database: directory where the keepass database is stored
-	> C:/Users/joao.costa/OneDrive - Warpcom Services S.A/Warpcom/Credentials.kdbx
+	> C:\Users\jlcosta\Desktop\Documents\Credentials.kdbx
 
  NOTE: if not applicable, delete this part and add to the device_list.csv file the username
 	   and password for each device
@@ -19,9 +19,16 @@
 +-----------------------------------------------------------------------------------------------------------+
 | CONFIGURATIONS TO BE GENERATED																			|
 +-----------------------------------------------------------------------------------------------------------+
+ [X] General
+ [X] VLAN
+ [X] Ports
+ [X] Device Management
+ [X] TACACS
+ [X] SNMP
+ [X] CDP
+ [X] LLDP
+ 
  [ ] Interfaces
- [X] Smart Account
-
- [ ] VLANs
+ [ ] Smart Account
  [ ] IP Address
  [ ] IGMP

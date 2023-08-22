@@ -27,8 +27,8 @@
     "Device Management": {
         "textfsm": true,
         "commands": {
-            "extreme": ["show webview"],
-            "extreme_exos": ["show switch management"]
+            "extreme": ["show ssh", "show telnet", "show webview"],
+            "extreme_exos": ["show management"]
         }
     },
     "File System": {
@@ -91,12 +91,14 @@
             "extreme_exos": ["show lldp neighbor detail"]
         }
     },
-    "Network Diagram": {
+    "Network Diagram CDP": {
         "textfsm": true,
         "commands": {
             "cisco_ios": ["show cdp neighbors detail"],
             "cisco_nxos": ["show cdp neighbors detail"],
-            "cisco_wlc": ["show cdp neighbors detail"]    
+            "cisco_wlc": ["show cdp neighbors detail"],
+            "extreme": ["show neighbors"],
+            "extreme_exos": ["show cdp neighbor detail"]
         }
     }
 }

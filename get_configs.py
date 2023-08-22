@@ -49,6 +49,10 @@ if __name__ == '__main__':
                 #         except KeyError:
                 #             print(f"{Colors.NOK_RED}{Colors.END} Please answer with Yes or No.")
 
+    # No information selected in the get_configs.txt file
+    if len(get_configs_info) == 0:
+        print(f"{Colors.NOK_RED}[!]{Colors.END} You need to specify the information to be gathered.")
+
     # Confirm the information to be requested to the devices
     print(f"{Colors.OK_YELLOW}[>]{Colors.END} Please confirm the following information to be gathered (Yes or No):")
     for info_requested in get_configs_info:
@@ -74,10 +78,10 @@ if __name__ == '__main__':
 
     # Generate script data, converting all class objects to nested dicts
     script_data = client.generate_data_dict()
-    output_parsed_dict = client.generate_config_parsed(script_data)
+    output_parsed = client.generate_config_parsed(script_data)
 
-    #if 'Network Diagram' in get_configs_info:
-    #    graph = client.generate_graph(output_parsed_dict)
-        # client.generate_diagram(graph)
+    if 'Network Diagram CDP' in get_configs_info:
+        graph = client.generate_graph_from_cdp(output_parsed)
+        client.generate_diagram(graph)
     
     print(f"{Colors.OK_GREEN}[>]{Colors.END} Execution time: {time.time() - start_time} seconds")

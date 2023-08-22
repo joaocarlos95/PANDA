@@ -2,7 +2,7 @@
 | CLIENT INFORMATION																						|
 +-----------------------------------------------------------------------------------------------------------+
  Root Directory: main directory for the script output
-	> C:\Users\jlcosta\Desktop\Documents\01. Clientes\ANA Aeroportos\02. Automation
+	> C:\Users\jlcosta\Desktop\Documents\01. Clientes\ANA Aeroportos\03. Automation
 
  Client Name: name of the client (output of the script is saved in a folder with the client name)
 	> ANA Aeroportos
@@ -19,20 +19,20 @@
 +-----------------------------------------------------------------------------------------------------------+
 | INFORMATION TO BE COLLECTED																				|
 +-----------------------------------------------------------------------------------------------------------+
- [ ] Configuration
+ [±] Configuration
  [-] Device
 	[-] Device Directory
 	[-] Device Information
-	[X] Device Management
+	[✓] Device Management
  [-] Interfaces
 	[-] Interfaces Counters
 	[-] Interfaces Information
  [-] MAC Address Table
  [-] Neighbors
 	[✓] CDP Neighbors
-	[ ] LLDP Neighbors
+	[-] LLDP Neighbors
  [-] Network Diagram
-	[-] Network CDP
+	[X] Network Diagram CDP
 	[-] Network LLDP
  [-] License
  
