@@ -14,6 +14,7 @@
         "commands": {
             "cisco_ios": ["show version"],
             "cisco_nxos": ["show version"],
+            "extreme": ["show system", "show time", "show system hardware"],
             "extreme_exos": ["show system"]
         }
     },
@@ -88,7 +89,7 @@
             "cisco_ios": ["show lldp neighbors detail"],
             "cisco_nxos": ["show lldp neighbors detail"],
             "extreme": ["show lldp port remote-info"],
-            "extreme_exos": ["show lldp neighbor detail"]
+            "extreme_exos": ["show lldp neighbor detailed"]
         }
     },
     "Network Diagram CDP": {
@@ -99,6 +100,42 @@
             "cisco_wlc": ["show cdp neighbors detail"],
             "extreme": ["show neighbors"],
             "extreme_exos": ["show cdp neighbor detail"]
+        }
+    },
+    "Network Diagram LLDP": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show neighbors"],
+            "extreme_exos": ["show lldp neighbor detail"]
+        }
+    },
+
+    "CDP Config": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show ciscodp"],
+            "extreme_exos": ["show cdp"]
+        }
+    },
+    "VLAN Ports": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show vlan portinfo"],
+            "extreme_exos": ["show ports vid port-number"]
+        }
+    },
+    "Interface Status": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show port status"],
+            "extreme_exos": ["show ports no-refresh"]
+        }
+    },
+    "Local Users": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show system login"],
+            "extreme_exos": ["show accounts"]
         }
     }
 }
