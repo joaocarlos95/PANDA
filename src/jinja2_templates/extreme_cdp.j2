@@ -1,6 +1,9 @@
 {# VARIABLES                                                    #}
 {#- ---------------------------------------------------------- -#}
 
-enable cdp ports {{ cdp.port_id }}
-configure cdp management-address vlan {{ cdp.vlan_mgmt }} primary-ip
-configure cdp device-id system-name
+{% for port in cdp.enabled_ports %}
+    set ciscodp port status enable
+{% endfor %}
+{% for port in cdp.disabled_ports %}
+    set ciscodp port status disable
+{% endfor %}

@@ -1,0 +1,6 @@
+{#- Local users configuration -#}
+
+create account admin {{ local_users.username }} {{ local_users.password }}
+configure account {{ local_users.username }} password-policy char-validation all-char-group
+configure account {{ local_users.username }} password-policy lockout-on-login-failures on
+configure account {{ local_users.username }} password-policy lockout-time-period 3

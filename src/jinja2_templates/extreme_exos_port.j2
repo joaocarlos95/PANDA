@@ -1,0 +1,117 @@
+{#-
+Port related configurations:
+    - Status: admin disabled or enabled
+    - Speed_Duplex:
+        - Speed: 10 Mbps, 100 Mbps, 1000 Mbps, 1 Gbps
+        - Duplex: Full or Half
+-#}
+
+{# Port admin status: list of disabled and enabled ports #}
+{% if port.status is defined %}
+    {% if port.status.disabled_ports is defined and port.status.disabled_ports is not none %}
+        {% for disabled_port in port.status.disabled_ports %}
+            disable port {{ disabled_port }}
+        {% endfor %}
+    {% endif %}
+    {% if port.status.enabled_ports is defined and port.status.enabled_ports is not none %}
+        {% for enabled_port in port.status.enabled_ports %}
+            enable port {{ enabled_port }}
+        {% endfor %}
+    {% endif %}
+{% endif %}
+
+{# Port speed and duplex: list of ports by speed and duplex combinations #}
+{% if port.speed_duplex is defined %}
+    {% if port.speed_duplex.auto is defined and port.speed_duplex.auto is not none %}
+        {% for port in port.speed_duplex.auto %}
+            configure ports {{ port }} auto on
+        {% endfor %}
+    {% endif %}
+    {% if port.speed_duplex.ten_full is defined and port.speed_duplex.ten_full is not none %}
+        {% for port in port.speed_duplex.ten_full %}
+            configure ports {{ port }} auto off speed 10 duplex full
+        {% endfor %}
+    {% endif %}
+    {% if port.speed_duplex.ten_half is defined and port.speed_duplex.ten_half is not none %}
+        {% for port in port.speed_duplex.ten_half %}
+            configure ports {{ port }} auto off speed 10 duplex half
+        {% endfor %}
+    {% endif %}
+    {% if port.speed_duplex.hundred_full is defined and port.speed_duplex.hundred_full is not none %}
+        {% for port in port.speed_duplex.hundred_full %}
+            configure ports {{ port }} auto off speed 100 duplex full
+        {% endfor %}
+    {% endif %}
+    {% if port.speed_duplex.hundred_half is defined and port.speed_duplex.hundred_half is not none %}
+        {% for port in port.speed_duplex.hundred_half %}
+            configure ports {{ port }} auto off speed 100 duplex half
+        {% endfor %}
+    {% endif %}
+    {% if port.speed_duplex.giga_full is defined and port.speed_duplex.giga_full is not none %}
+        {% for port in port.speed_duplex.giga_full %}
+            configure ports {{ port }} auto off speed 1000 duplex full
+        {% endfor %}
+    {% endif %}
+    {% if port.speed_duplex.giga_half is defined and port.speed_duplex.giga_half is not none %}
+        {% for port in port.speed_duplex.giga_half %}
+            configure ports {{ port }} auto off speed 1000 duplex half
+        {% endfor %}
+    {% endif %}
+{% endif %}
+
+{# Port inline-power status: list of inline-power enabled and disabled ports #}
+{% if port.inline_power is defined %}
+    {% if port.inline_power.disabled_ports is defined and port.inline_power.disabled_ports is not none %}
+        {% for port in port.inline_power.disabled_ports %}
+            disable inline-power ports {{ port }}
+        {% endfor %}
+    {% if port.inline_power.enabled_ports is defined and port.inline_power.enabled_ports is not none %}
+        {% for port in port.inline_power.enabled_ports %}
+            enable inline-power ports {{ port }}
+        {% endfor %}
+{% endif %}
+
+{# Port mac-locking limit: list of ports with mac locking limitation #}
+{% if port.mac_lock is defined %}
+    enable mac-locking
+    {% for port_limit in port.mac_lock %}
+        {% for port in port_limit.ports %}
+            enable mac-locking ports {{ port }}
+            configure mac-locking ports {{ port }} first-arrival limit-learning {{ port_limit.limit }}
+            configure mac-locking ports {{ port }} first-arrival aging enable
+            configure mac-locking ports {{ port }} first-arrival link-down-action clear-macs
+            configure mac-locking ports {{ port }} trap violation on
+            configure mac-locking ports {{ port }} log violation on
+        {% endfor %}
+    {% endfor %}
+{% endif %}
+
+{# Port rate limit: list of ports with rate limit #}
+{% if port.rate_limit is defined %}
+    {% for port_limit in port.rate_limit %}
+        {% for port in port_limit.ports %}
+            configure port {{ port }} rate-limit flood broadcast {{ port_limit.limit }} out-actions log trap
+            configure port {{ port }} rate-limit flood multicast {{ port_limit.limit }} out-actions log trap
+            configure port {{ port }} rate-limit flood unknown-destmac {{ port_limit.limit }} out-actions log trap
+        {% endfor %}
+    {% endfor %}
+{% endif %}
+
+{# Port link flap detetion enabled #}
+{% if port.link_flap is defined %}
+    {% for port in port.link_flap.ports %}
+        configure port {{ port }} link-flap-detection on
+        configure port {{ port }} link-flap-detection interval {{ port.link_flap.interval }}
+        configure port {{ port }} link-flap-detection action add log trap
+    {% endfor %}
+{% endif %}
+
+
+
+{% if port.snmp is defined %}
+    {% for port in port.snmp.trap_up_down_disable_ports %}
+        disable snmp traps port-up-down ports {{ port }}
+    {% endfor %}
+{% endif %}
+
+

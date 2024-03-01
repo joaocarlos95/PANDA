@@ -1,7 +1,7 @@
 {#- Basic configuration -#}
-configure snmp sysName {{ general.hostname }}
-configure snmp sysLocation {{ general.location }}
-configure snmp sysContact {{ general.contact }}
+configure snmp sysName "{{ general.hostname }}"
+configure snmp sysLocation "{{ general.location }}"
+configure snmp sysContact "{{ general.contact }}"
 
 configure account all password-policy char-validation all-char-groups
 configure account all password-policy min-length 15
@@ -10,9 +10,7 @@ configure account all password-policy lockout-on-login-failures on
 configure cli max-failed-logins 3
 configure account all password-policy lockout-time-period 3
 
-{# COMMENT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 configure banner before-login save-to-configuration
- 
 +---------------------------------------------------------------------+
 |                            EXTREME DEVICE                           |
 +---------------------------------------------------------------------+
@@ -30,9 +28,11 @@ configure banner before-login save-to-configuration
 |   and legal agreements in place.                                    |
 |                                                                     |
 +---------------------------------------------------------------------+
- 
- > Device Name: {{ general.hostname }}
-   Location: {{ general.location }}
-   Contact: {{ general.contact }}
+|   Device Name: {{ general.hostname }}{% for _ in range(52 - general.hostname|length) %} {% endfor %} |
+|   Location: {{ general.location }}{% for _ in range(55 - general.location|length) %} {% endfor %} |
+|   Contact: {{ general.contact }}{% for _ in range(56 - general.contact|length) %} {% endfor %} |
++---------------------------------------------------------------------+
 
-<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< #}
+enable dos-protect simulated
+enable cli-config-logging expansion
+enable jumbo-frame ports all

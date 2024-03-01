@@ -1,36 +1,39 @@
-{# VARIABLES                                                    #}
-{#- ---------------------------------------------------------- -#}
-{% set telnet = device_management.telnet %}
-{% set http = device_management.http %}
-{% set https = device_management.https %}
+{#- Configure device access methods and accounts -#}
 
-{#- DESCRIPTION: SSH ACCESS CONFIGURATION                        #}
-{#- ---------------------------------------------------------- -#}
-{% macro ssh_configuration() %}
-set ssh {{ ssh.status }}
-{%- endmacro %}
-
-{#- DESCRIPTION: TELNET ACCESS CONFIGURATION                     #}
-{#- ---------------------------------------------------------- -#}
-{% macro telnet_configuration() %}
-set telnet {{ telnet.status }} all
-{%- endmacro %}
-
-{#- DESCRIPTION: HTTP ACCESS CONFIGURATION                       #}
-{#- ---------------------------------------------------------- -#}
-{% macro http_server_configuration() %}
-set webview {{ http.status }}
-{%- endmacro %}
-
-
-{#- DESCRIPTION: DEVICE ACCESS DEFAULT CONFIGURATION             #}
-{#- ---------------------------------------------------------- -#}
-{% if "ssh" in device_management -%}
-    {{ ssh_configuration() }}
+{#- Local access -#}
+{% if device_management.local_access is defined -%}
+    set system login {{ device_management.local_access.username }} {{ device_management.local_access.privilege }} {{ device_management.local_access.status }} local-only yes simultaneous-logins 3
+    set system password require-at-creation yes
+    set system password allow-duplicates no
+    set system password length 8
+    set system password min-required-chars lowercase 2
+    set system password min-required-chars numeric 2
+    set system password min-required-chars special 2
+    set system password min-required-chars uppercase 2
+    set system lockout attempts {{ device_management.local_access.lockout.attempts }}
+    set system lockout time {{ device_management.local_access.lockout.timer }}
 {% endif %}
-{% if "telnet" in device_management -%}
-    {{ telnet_configuration() }}
+
+{#- SSH access -#}
+{% device_management.remote_access.ssh is defined -%}
+    set ssh {{ device_management.remote_access.ssh.status }}
 {% endif %}
-{% if "http" in device_management -%}
-    {{ http_server_configuration() }}
+
+{#- Telnet access -#}
+{% if device_management.remote_access.telnet is defined -%}
+    {% if device_management.remote_access.telnet.status == "enable" -%}
+        set telnet {{ device_management.remote_access.telnet.status }} inbound
+    {% else %}
+        set webview {{ device_management.remote_access.http.status }} all
+    {% endif %}
+{% endif %}
+
+{#- Web access -#}
+{% if device_management.remote_access.web is defined -%}
+    {% if device_management.remote_access.web.status == "enable" -%}
+        set ssl enable
+        set webview {{ device_management.remote_access.http.status }} ssl-only
+    {% else %}
+        set webview {{ device_management.remote_access.http.status }}
+    {% endif %}
 {% endif %}

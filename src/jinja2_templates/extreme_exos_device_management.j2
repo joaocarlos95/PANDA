@@ -1,32 +1,49 @@
 {#- Device management configuration -#}
 
-{% if device_management.ip.address != "" %}
+{#- Device IP configuration -#}
+{% if device_management.ip is defined %}
     configure vlan {{ device_management.ip.vlan }} ipaddress {{ device_management.ip.address }} {{ device_management.ip.mask }}
     configure iproute add default {{ device_management.ip.gw }}
 {% endif %}
 
+{#- Local access -#}
+{% if device_management.local_access is defined -%}
+    create account {{ device_management.local_access.privilege }} {{ device_management.local_access.username }} {{ device_management.local_access.password }} 
+    configure account {{ device_management.local_access.username }} password-policy char-validation all-char-groups
+    configure account {{ device_management.local_access.username }} password-policy lockout-on-login-failures on
+    configure account {{ device_management.local_access.username }} password-policy lockout-time-period {{ device_management.local_access.lockout.timer }}
+    delete account admin
+    delete account user
+{% endif %}
+
 {#- SSH access -#}
-{% if "ssh" in device_management.remote_access %}
-    enable ssh2
-    configure ssh2 rekey time-interval 30
-    configure cli idle-timeout 10
-{% else %}
-    disable ssh2
+{% if device_management.remote_access.ssh is defined %}
+    {% if device_management.remote_access.ssh.status == "enable" %}
+        enable ssh2
+        configure ssh2 rekey time-interval 30
+        configure cli idle-timeout 10
+    {% else %}
+        disable ssh2
+    {% endif %}
 {% endif %}
 
 {#- Telnet access -#}
-{% if "telnet" in device_management.remote_access %}
-    enable telnet
-{% else %}
-    disable telnet
+{% if device_management.remote_access.telnet is defined %}
+    {% if device_management.remote_access.telnet.status == "enable" %}
+        enable telnet
+    {% else %}
+        disable telnet
+    {% endif %}
 {% endif %}
 
 {#- Web access -#}
-{% if "web" in device_management.remote_access %}
-    disable web http
-    configure ssl certificate privkeylen 2048 country PT organization ANA common-name ana.pt
-    enable web https
-{% else %}
-    disable web http
-    disable web https
+{% if device_management.remote_access.web is defined %}
+    {% if device_management.remote_access.web.status == "enable" %}
+        disable web http
+        configure ssl certificate privkeylen 2048 country PT organization ANA common-name ana.pt
+        enable web https
+    {% else %}
+        disable web http
+        disable web https
+    {% endif %}
 {% endif %}

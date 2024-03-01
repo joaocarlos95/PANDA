@@ -6,6 +6,7 @@
 {% set child_template = vendor_os ~ "_" ~ block ~ ".j2" %}
 {% include child_template %}
 {% endfor %}
-{% if vendor_os == "extreme" -%}
+
+{% if vendor_os == "extreme" %}
     save config
 {% endif %}
