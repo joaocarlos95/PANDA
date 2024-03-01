@@ -19,14 +19,14 @@
 +-----------------------------------------------------------------------------------------------------------+
 | CONFIGURATIONS TO BE GENERATED																			|
 +-----------------------------------------------------------------------------------------------------------+
- [X] General
- [X] VLAN
- [X] Ports
- [X] Device Management
- [X] TACACS
- [X] SNMP
+ [ ] General
+ [ ] VLAN
+ [ ] Ports
+ [ ] Device Management
+ [ ] TACACS
+ [ ] SNMP
  [X] CDP
- [X] LLDP
+ [ ] LLDP
  
  [ ] Interfaces
  [ ] Smart Account

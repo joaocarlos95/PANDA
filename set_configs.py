@@ -31,16 +31,13 @@ if __name__ == '__main__':
             elif 'Keepass Database:' in line:
                 line = file.readline()
                 if '>' in line and len(set(line)) > 2 and '.kdbx' in line:
-                    keepass = {
-                        'filename': line.split('>')[1].strip(),
-                        'password': getpass(f"{Colors.OK_YELLOW}[>]{Colors.END} Please insert your Keepass password: ")
-                    }
+                    kdbx_filename = line.split('>')[1].strip()
             elif '[x]' in line or '[X]' in line:
                 info_requested = line.split('] ')[1].rstrip().lower().replace(" ", "_")
                 config_blocks.append(info_requested)
 
     # Confirm the configurations to be generated and applied to the devices
-    print(f"{Colors.OK_YELLOW}[>]{Colors.END} Please confirm the following configuration blocks (Yes or No): ")
+    print(f"{Colors.OK_YELLOW}[>]{Colors.END} Please confirm the following configuration blocks to be applied to the devices (Yes or No): ")
     for info_requested in config_blocks:
         print(f"       > {info_requested}")
     while True:
@@ -54,7 +51,7 @@ if __name__ == '__main__':
             print(f"{Colors.NOK_RED}{Colors.END} Please answer with Yes or No.")
 
     # Create a new client object
-    client = Client(root_dir, client_name, keepass=keepass)
+    client = Client(root_dir, client_name, kdbx_filename=kdbx_filename)
 
     # Initialize all data (templates, templates data)
     client.get_j2_template()
