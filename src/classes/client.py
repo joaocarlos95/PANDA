@@ -1,18 +1,21 @@
 import csv
 import json
 import os
+import sys
 import yaml
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from getpass import getpass
 from jinja2 import Environment, FileSystemLoader
-from src.classes.decorators import write_to_file
+from typing import Literal
+
+from .decorators import write_to_file
 
 import inspect
 from datetime import date
 from N2G import yed_diagram
 from pykeepass import PyKeePass
-from src.classes.device import Device
-from src.classes.colors import Colors
+from .device import Device
+from .colors import Colors
 
 
 MAX_WORKERS = 40
@@ -24,7 +27,7 @@ class Client:
     to define the script main execution, namely import and export data.
     '''
 
-    def __init__(self, dir, name, keepass=None, cmd_list=None, ftp_server=None):
+    def __init__(self, dir, name, kdbx_filename=None, cmd_list=None, ftp_server=None):
         '''
         Constructor used to create a new client object, definig its main directory, name and
         threading lock to avoid race conditions when accessing multiple devices at the same time
@@ -33,10 +36,11 @@ class Client:
         self.dir = dir
         self.name = name
         self.device_list = []
-        self.keepass = keepass
 
-        self.get_devices_from_csv()
-        print(f"{Colors.OK_GREEN}[>]{Colors.END} Number of devices being interventioned: {len(self.device_list)}")
+        if kdbx_filename is None:
+            self.kdbx_database = None
+        else:
+            self.kdbx_database = self.get_kdbx_database(kdbx_filename)
 
     def get_j2_template(self):
         '''
@@ -90,9 +94,9 @@ class Client:
                             'enable_secret': row['enable_secret']
                         }                   
                     # Check if keepass has device credentials
-                    elif self.keepass:
+                    elif self.kdbx_database:
                         try:
-                            credentials = self.get_kdbx_credentials(row['ip_address'])
+                            credentials = self.get_kdbx_credentials(self.kdbx_database, row['ip_address'])
                         except Exception as exception:
                             raise exception
                     # Couldn't find credentials neither in .csv file nor .kdbx file
@@ -107,15 +111,15 @@ class Client:
                 device = Device(self, row['vendor_os'], row['ip_address'], credentials)
                 self.device_list.append(device)
 
-    def get_kdbx_credentials(self, ip_address):
+    def get_kdbx_database(self, filename):
         '''
-        Get device credentials from keepass database, specifying the client name and device
-        IP address.
+        Get keepass database from .kdbx file. This database will be later iterated through to get the device credentials
         '''
-    
+
         try:
+            kdbx_password = getpass(f"{Colors.OK_YELLOW}[>]{Colors.END} Please insert your Keepass password: ")
             # Load .kdbx file, passing in the argument the filename and respective password
-            keepass_file = PyKeePass(**self.keepass)
+            kdbx_database = PyKeePass(filename, password=kdbx_password)
         except Exception as exception:
             if 'No such file or directory:' in str(exception):
                 print(f"{Colors.NOK_RED}[!]{Colors.END} Error getting keepass database)")
@@ -125,18 +129,27 @@ class Client:
                 raise Exception(f"{Colors.NOK_RED}[!]{Colors.END} Wrong keepass password")
             else:
                 raise Exception(f"{Colors.NOK_RED}[!]{Colors.END} Error in {inspect.currentframe().f_code.co_name}", exception)
+        
+        return kdbx_database
 
+
+    def get_kdbx_credentials(self, kdbx_database, ip_address):
+        '''
+        Get device credentials from keepass database, specifying the client name and device
+        IP address.
+        '''
+    
         # Find client group within keepass, using its name
-        group = keepass_file.find_groups(name=self.name, first=True)
+        group = kdbx_database.find_groups(name=self.name, first=True)
         if not group:
             print(f"{Colors.NOK_RED}[!]{Colors.END} Group {self.name} doesn't exist in keepass database")
             raise Exception(f"{Colors.NOK_RED}[!]{Colors.END} Group {self.name} doesn't exist in keepass database")
 
         # Find device credentials, using its IP address 
-        entry = keepass_file.find_entries(group=group, url=ip_address, tags=['SSH', 'Telnet'], recursive=True, first=True)
+        entry = kdbx_database.find_entries(group=group, url=ip_address, tags=['SSH', 'Telnet'], recursive=True, first=True)
         if not entry:
             # Find device credentials, using common entry (usually credentials for all devices)
-            entry = keepass_file.find_entries(group=group, title='RADIUS', first=True)
+            entry = kdbx_database.find_entries(group=group, title='RADIUS', first=True)
             if not entry:
                 print(f"{Colors.NOK_RED}[!]{Colors.END} Couldn't find credentials for device with IP: {ip_address}")
                 raise Exception(f"{Colors.NOK_RED}[!]{Colors.END} Couldn't find credentials for device with IP: {ip_address}")
@@ -164,7 +177,7 @@ class Client:
             future_list = [executor.submit(device.get_configs, get_configs_info) for device in self.device_list]
             for future in as_completed(future_list):
                 future.result()
-
+    
     def set_concurrent_configs(self, config_blocks: list) -> None:
         '''
         Function used to interact with the devices in a concurrent way (using concurrent.futures),
@@ -173,6 +186,17 @@ class Client:
 
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             future_list = [executor.submit(device.set_configs, config_blocks) for device in self.device_list]
+            for future in as_completed(future_list):
+                future.result()
+    
+    def generate_concurrent_configs(self, config_blocks: list) -> None:
+        '''
+        Function used to interact with the devices in a concurrent way (using concurrent.futures),
+        takind advantage of threading to get information from the devices at the same time
+        '''
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_list = [executor.submit(device.generate_config, config_blocks) for device in self.device_list]
             for future in as_completed(future_list):
                 future.result()
 
@@ -187,7 +211,7 @@ class Client:
 
         # Transform client object in dict and remove unnecessary key/values
         client_dict = self.__dict__.copy()
-        del client_dict['keepass']
+        del client_dict['kdbx_database']
         del client_dict['command_list']
 
         # Transform device objects in dict and remove unnecessary key/values
@@ -239,13 +263,18 @@ class Client:
 
         return output_parsed_dict
 
-    def generate_graph_from_cdp(self, output_parsed:dict) -> dict:
+    def generate_graph(self, output_parsed:dict, discovery_protocol:Literal['CDP', 'LLDP']) -> dict:
         '''
         Generate a dict variable representing network diagram based on neighbors adjancies
         '''
 
+        if discovery_protocol == 'CDP':
+            output_parsed = output_parsed['Network Diagram CDP']
+        elif discovery_protocol == 'LLDP':
+            output_parsed = output_parsed['Network Diagram LLDP']
+
         graph = {'nodes': [], 'links': []}
-        for entry in output_parsed['Network Diagram CDP']:
+        for entry in output_parsed:
             device_ip_address = entry['device_ip_address'] if 'device_ip_address' in entry else ''
             device_hostname = entry['device_hostname'] if 'device_hostname' in entry else ''
             remote_ip_address = entry['remote_ip_address'] if 'remote_ip_address' in entry else ''
@@ -270,6 +299,7 @@ class Client:
             'bottom_label': device_ip_address
         })
 
+        print(graph)
         return graph
 
     @write_to_file

@@ -2,8 +2,8 @@ import textfsm
 from datetime import datetime
 from netmiko.utilities import get_structured_data
 #from OuiLookup import OuiLookup
-from src.classes.colors import Colors 
-from src.classes.decorators import write_to_file
+from .colors import Colors 
+from .decorators import write_to_file
 
 class Configs:
     '''
@@ -32,7 +32,7 @@ class SetConfigs(Configs):
         super().__init__(device, info)
 
     @write_to_file
-    def render_template(self, config_blocks: list) -> str:
+    def render_template(self, config_blocks: list, j2_data: dict) -> str:
         '''
         Generate device configuration, given a jinnja2 template and a YAML data file. This function
         receives as input a list of configuration blocks for the jinja2 template choose the child
@@ -52,7 +52,7 @@ class SetConfigs(Configs):
             'ip_address': self.device.ip_address,
             'timestamp': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
             'comment_char': comment_char[self.device.vendor_os],
-            **self.device.client.j2_data
+            **j2_data
         }
         
         config = self.device.client.j2_template.render(data)
@@ -79,6 +79,8 @@ class SetConfigs(Configs):
         try:
             # Apply configuration on the device, sending a list of commands
             print(f"{Colors.OK_GREEN}[{self.device.ip_address}]{Colors.END} Applying configuration")
+            x = data.split('\n')
+            print(x)
             self.output = self.device.connection.send_config_set(data.split('\n'))
 
             # Method save_config doesn't work in extreme devices
@@ -114,7 +116,7 @@ class GetConfigs(Configs):
         super().__init__(device, info)
 
     @write_to_file
-    def get_config(self, command: str) -> str:
+    def get_config(self, command: str, expect_string: str=None) -> str:
         '''
         Get configurations from the device, running a "show" command and parsing the output
         whenever possible
@@ -133,7 +135,7 @@ class GetConfigs(Configs):
             print(f"{Colors.OK_GREEN}[{self.device.ip_address}]{Colors.END} Getting configuration: {command}")
             # For commands with bigger output, increase the read_timeout
             read_timeout = 600 if self.info == 'Configuration' else 100
-            self.output = self.device.connection.send_command(command, read_timeout=read_timeout)
+            self.output = self.device.connection.send_command_expect(command, read_timeout=read_timeout, expect_string=expect_string)
             self.status = "Done"
 
             if 'Invalid input detected' in self.output:
@@ -163,7 +165,7 @@ class GetConfigs(Configs):
                 del self.output_parsed
                 return None
             
-            # For the extreme OS, delete all entries where the protocol is different from CDP
+            # For the extreme OS, consider all entries where the protocol is equal to CDP
             if self.device.vendor_os == 'extreme' and self.info == 'CDP Neighbors':
                 output_parsed_tmp = []
                 for item in self.output_parsed:
@@ -171,13 +173,35 @@ class GetConfigs(Configs):
                         del item['protocol']
                         output_parsed_tmp.append(item)
                 self.output_parsed = output_parsed_tmp
-            # For the extreme OS, delete all entries where the protocol is different from LLDP
+            # For the extreme OS, consider all entries where the protocol is equal to LLDP
             elif self.device.vendor_os == 'extreme' and self.info == 'CDP Neighbors':
                 output_parsed_tmp = []
                 for item in self.output_parsed:
                     if item.get('protocol') == 'lldp' or item.get('protocol') == 'LL':
                         del item['protocol']
                         output_parsed_tmp.append(item)
+                self.output_parsed = output_parsed_tmp
+            
+            # For the extreme EXOS, split the switch-stacks into multiple entries
+            elif self.device.vendor_os == 'extreme_exos' and self.info == 'Device Information':
+                output_parsed_tmp = []
+                # For each device in the stack, create a new entry
+                for entry in self.output_parsed:
+                    serial_numbers = entry['serial_number']
+                    hardware_items = entry['hardware']
+                    # Create a new entry for each combination of serial number and hardware item
+                    for serial_number, hardware_item in zip(serial_numbers, hardware_items):
+                        new_entry = {
+                            'location': entry['location'],
+                            'mac_addr': entry['mac_addr'],
+                            'current_time': entry['current_time'],
+                            'last_boot': entry['last_boot'],
+                            'uptime': entry['uptime'],
+                            'version': entry['version'],
+                            'serial_number': serial_number,
+                            'hardware': hardware_item,
+                        }
+                        output_parsed_tmp.append(new_entry)
                 self.output_parsed = output_parsed_tmp
 
             return self.output_parsed

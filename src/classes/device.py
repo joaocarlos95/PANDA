@@ -1,9 +1,9 @@
 
 import inspect
 from netmiko import ConnectHandler
-from src.classes.colors import Colors
-from src.classes.upgrade import Upgrade
-from src.classes.configs import GetConfigs, SetConfigs
+from .colors import Colors
+from .upgrade import Upgrade
+from .configs import GetConfigs, SetConfigs
 
 
 WITHOUT_ENABLE_SECRET = ['extreme', 'extreme_exos']
@@ -76,6 +76,12 @@ class Device():
             # Disable paging to specific devices
             if self.vendor_os in PAGING_DISABLE.keys():
                 self.connection.send_command(PAGING_DISABLE[self.vendor_os]['disable'])
+
+            # Method save_config doesn't work in extreme devices
+            if self.vendor_os == 'extreme':
+                pass
+            else:
+                self.connection.save_config()
 
         except Exception as exception:
             if 'No connection could be made because the target machine actively refused it' in str(exception) or \
@@ -270,12 +276,15 @@ class Device():
         except Exception as exception:
             raise Exception(f"Error in {inspect.currentframe().f_code.co_name}", exception, self.ip_address)
 
-    def set_configs(self, config_blocks: list) -> None:
+    def set_configs(self, config_blocks: list, j2_data: dict=None, config: list=None) -> None:
         '''
         Connect to the device in order to generate and apply a set of configurations using 
         pre-defined templates and user data. The template is generated based on a list of 
         configuration blocks defined by the user.
         '''
+        
+        # jinja2 is the default generated in no other is provided in the function
+        j2_data = self.client.j2_data if j2_data == None else j2_data
 
         # Connect to the device
         self.connect()
@@ -284,13 +293,27 @@ class Device():
 
         # Create a SetConfigs object, generate the configuration and send it to the device 
         set_config = SetConfigs(self)
-        config = set_config.render_template(config_blocks)
-        #self.config_list.append(config)
-        #set_config.send_config(data=config)
+        config = set_config.render_template(config_blocks, j2_data=j2_data) if config == None else config
+        print(config)
+        self.config_list.append(config)
+        set_config.send_config(data=config)
         
         # Disconnect from the device
         self.disconnect()
     
+    def generate_config(self, config_blocks: list, j2_data: dict=None, config: list=None) -> None:
+        '''
+        Generate a set of configurations using pre-defined templates and user data.
+        The template is generated based on a list of configuration blocks defined by the user.
+        '''
+        
+        # jinja2 is the default data if no other is provided in the function
+        j2_data = self.client.j2_data if j2_data == None else j2_data
+
+        # Create a SetConfigs object and generate the configuration 
+        set_config = SetConfigs(self)
+        config = set_config.render_template(config_blocks, j2_data=j2_data) if config == None else config
+        print(config)
     
     def get_configs(self, get_configs_info: list) -> None:
         '''
@@ -310,7 +333,10 @@ class Device():
                 
                 # If there is a connection to the device, execute the commands
                 if self.connection:
-                    output = config.get_config(command=command)
+                    if self.vendor_os == 'extreme_exos':
+                        output = config.get_config(command=command, expect_string=self.connection.find_prompt())
+                    else:
+                        output = config.get_config(command=command)
                     # Parse the output of the command executed
                     output_parsed = config.parse_output(raw_output=output, platform=self.vendor_os, command=command)
 
