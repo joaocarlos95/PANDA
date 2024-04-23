@@ -3,19 +3,12 @@ configure snmp sysName "{{ general.hostname }}"
 configure snmp sysLocation "{{ general.location }}"
 configure snmp sysContact "{{ general.contact }}"
 
-configure account all password-policy char-validation all-char-groups
-configure account all password-policy min-length 15
-configure account all password-policy history 10
-configure account all password-policy lockout-on-login-failures on
-configure cli max-failed-logins 3
-configure account all password-policy lockout-time-period 3
-
 configure banner before-login save-to-configuration
 +---------------------------------------------------------------------+
 |                            EXTREME DEVICE                           |
 +---------------------------------------------------------------------+
 |                                                                     |
-|                           !!! WARNING !!!                           |
+|                            !!! WARNING !!!                          |
 |              UNAUTHORIZED ACCESS IS STRICTLY PROHIBITED             |
 |                                                                     |
 |   This device is property of ANA, Aeroportos de Portugal.           |
@@ -34,5 +27,8 @@ configure banner before-login save-to-configuration
 +---------------------------------------------------------------------+
 
 enable dos-protect simulated
-enable cli-config-logging expansion
+enable cli config-logging expansion
 enable jumbo-frame ports all
+
+configure cli journal size 150
+configure cli max-sessions 5

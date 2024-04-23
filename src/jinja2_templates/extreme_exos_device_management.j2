@@ -1,22 +1,25 @@
 {#- Device management configuration -#}
 
-{#- Device IP configuration -#}
+{# Device IP configuration #}
 {% if device_management.ip is defined %}
-    configure vlan {{ device_management.ip.vlan }} ipaddress {{ device_management.ip.address }} {{ device_management.ip.mask }}
+    configure vlan {{ device_management.ip.vlan }} ipaddress {{ device_management.ip.addr }} {{ device_management.ip.mask }}
     configure iproute add default {{ device_management.ip.gw }}
 {% endif %}
 
-{#- Local access -#}
+{# Local access #}
 {% if device_management.local_access is defined -%}
+    configure account all password-policy char-validation all-char-groups
+    configure account all password-policy min-length 15
+    configure account all password-policy history 10
+    configure account all password-policy lockout-on-login-failures on
+    configure cli max-failed-logins {{ device_management.local_access.accounts_lockout.attempts }}
+    configure account all password-policy lockout-time-period {{ device_management.local_access.accounts_lockout.timer }}
     create account {{ device_management.local_access.privilege }} {{ device_management.local_access.username }} {{ device_management.local_access.password }} 
-    configure account {{ device_management.local_access.username }} password-policy char-validation all-char-groups
-    configure account {{ device_management.local_access.username }} password-policy lockout-on-login-failures on
-    configure account {{ device_management.local_access.username }} password-policy lockout-time-period {{ device_management.local_access.lockout.timer }}
-    delete account admin
-    delete account user
+    disable account admin
+    disable account user
 {% endif %}
 
-{#- SSH access -#}
+{# SSH access #}
 {% if device_management.remote_access.ssh is defined %}
     {% if device_management.remote_access.ssh.status == "enable" %}
         enable ssh2
@@ -27,7 +30,7 @@
     {% endif %}
 {% endif %}
 
-{#- Telnet access -#}
+{# Telnet access #}
 {% if device_management.remote_access.telnet is defined %}
     {% if device_management.remote_access.telnet.status == "enable" %}
         enable telnet
@@ -36,7 +39,7 @@
     {% endif %}
 {% endif %}
 
-{#- Web access -#}
+{# Web access #}
 {% if device_management.remote_access.web is defined %}
     {% if device_management.remote_access.web.status == "enable" %}
         disable web http

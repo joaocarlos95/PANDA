@@ -1,17 +1,12 @@
 {#- VLAN creation -#}
 
-{#- configure vlan Default delete ports all -#}
 {% for vlan in vlan %}
     create vlan "{{ vlan.name }}" tag {{ vlan.id }}
-    enable stpd s0 auto-bind vlan {{ vlan.name }}
-    {% if vlan.tagged_ports is defined %}
-        {% for port in vlan.tagged_ports %}
-            configure vlan {{ vlan.id }} add ports {{ port }} tagged
-        {% endfor %}
+    enable stpd {{ vlan.spanning_tree_domain }} auto-bind vlan {{ vlan.name }}
+    {% if vlan.tagged_ports is defined and vlan.tagged_ports is not none %}
+        configure vlan {{ vlan.id }} add ports {{ vlan.tagged_ports | join(',') }} tagged
     {% endif %}
-    {% if vlan.untagged_ports is defined %}
-        {% for port in vlan.untagged_ports %}
-            configure vlan {{ vlan.id }} add ports {{ port }} untagged
-        {% endfor %}
+    {% if vlan.untagged_ports is defined and vlan.untagged_ports is not none %}
+        configure vlan {{ vlan.id }} add ports {{ vlan.untagged_ports | join(',') }} untagged
     {% endif %}
 {% endfor %}
