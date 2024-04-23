@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NAPymiko</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <style>
+        .clickable {
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body class="layout-top-nav" style="height: auto;">
     <div class="wrapper">
@@ -12,7 +17,7 @@
         <nav class="main-header navbar navbar-expand-md navbar-light navbar-white">
             <div class="container">
                 <a href="#" class="navbar-brand">
-                    <span class="brand-text font-weight-light">NAPymiko</span>
+                    <span class="brand-text font-weight-light"><b>NAPymiko</b></span>
                  </a>
                 <button class="navbar-toggler order-1" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -60,21 +65,18 @@
             <div class="content">
                 <div class="container">
                     <div class="form-group row">
-                        <div class="col-sm-4">
-                            <input type="text" class="form-control" id="clientName" name="clientName" placeholder="Client Name" value="{{ client_name }}">
+                        <div class="col-sm-3">
+                            <input type="text" class="form-control" id="clientName" name="clientName" placeholder="Client Name" value="{{ client_name }}" style="font-size: smaller;">
                         </div>
-                        <div class="col-sm-8">
-                            <input type="text" class="form-control" id="rootDirectory" name="rootDirectory"  placeholder="Root Directory" value="{{ root_directory }}">
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" id="rootDirectory" name="rootDirectory"  placeholder="Root Directory" value="{{ root_directory }}" style="font-size: smaller;">
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-lg-6">
                             <div class="card card-info">
-                                <div class="card-header">
+                                <div class="card-header clickable" data-href="/get_configs">
                                     <h5 class="card-title m-0">Get Configurations</h5>
-                                    <div class="card-tools">
-                                        <button class="btn btn-block btn-info btn-xs"><a href="/get_configs">GET</a></button>
-                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">Get configurations from network devices, parsing the output whenever possible and creating an excel file with the data.</p>
@@ -83,11 +85,8 @@
                         </div>
                         <div class="col-lg-6">
                             <div class="card card-danger">
-                                <div class="card-header">
+                                <div class="card-header clickable" data-href="/set_configs">
                                     <h5 class="card-title m-0">Set Configurations</h5>
-                                    <div class="card-tools">
-                                        <button class="btn btn-block btn-danger btn-xs"><a href="/set_configs">SET</a></button>
-                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">Generate configurations based on input data and pre-defined templates, and applied them to the network devices.</p>
@@ -96,11 +95,8 @@
                         </div>
                         <div class="col-lg-4">
                             <div class="card card-dark">
-                                <div class="card-header">
+                                <div class="card-header clickable" data-href="#">
                                     <h5 class="card-title m-0">Upgrade Firmware</h5>
-                                    <div class="card-tools">
-                                        <button class="btn btn-block btn-dark btn-xs"><a href="/upgrade">UPG</a></button>
-                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">Upgrade devices firmware, or send image to the device.</p>
@@ -110,11 +106,8 @@
                         </div>
                         <div class="col-lg-4">
                             <div class="card card-danger">
-                                <div class="card-header">
+                                <div class="card-header clickable" data-href="#">
                                     <h5 class="card-title m-0">Enable LLDP on VLAN</h5>
-                                    <div class="card-tools">
-                                        <button class="btn btn-block btn-danger btn-xs"><a href="/upgrade">SET</a></button>
-                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">Enable LLDP in ports that belong to a specific VLAN.</p>
@@ -124,16 +117,23 @@
                         </div>
                         <div class="col-lg-4">
                             <div class="card card-danger">
-                                <div class="card-header">
+                                <div class="card-header clickable" data-href="#">
                                     <h5 class="card-title m-0">Enable CDP on VLAN</h5>
-                                    <div class="card-tools">
-                                        <button class="btn btn-block btn-danger btn-xs"><a href="/upgrade">SET</a></button>
-                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">Enable CDP in ports that belong to a specific VLAN.</p>
                                 </div>
                                 <div class="overlay"></div>    
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card card-dark">
+                                <div class="card-header clickable" data-href="/generate_configs">
+                                    <h5 class="card-title m-0">Generate Configurations</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">Generate device configurations based on pre-defined templates.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -187,6 +187,19 @@
                 }, 1000); // Adjust the delay (in milliseconds) as needed
             });
         });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var clickableElements = document.querySelectorAll('.clickable');
+            clickableElements.forEach(function(element) {
+                element.addEventListener('click', function() {
+                    var href = element.getAttribute('data-href');
+                    if (href) {
+                        window.location.href = href;
+                    }
+                });
+            });
+        });
+
     </script>
 </body>
 </html>
