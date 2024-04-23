@@ -1,6 +1,7 @@
-# Network Automation
+# PANDA
 
-this code blablabla
+PANDA (Python Automation for Network Device Access) is a Python-based framework designed to streamline network device access and control through automation.
+With PANDA, users can effortlessly manage and interact with network devices, enabling efficient network operations and administration.
 
 ## Dependencies																				
 1. Install [Python3](https://www.python.org/downloads/)
