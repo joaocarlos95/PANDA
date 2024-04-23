@@ -1,11 +1,15 @@
 import csv
 import json
 import os
-import sys
 import yaml
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from getpass import getpass
 from jinja2 import Environment, FileSystemLoader
+from nornir import InitNornir
+from nornir.core.task import Result, Task
+from nornir_netmiko.tasks import netmiko_send_command
+from nornir_utils.plugins.functions import print_result
 from typing import Literal
 
 from .decorators import write_to_file
@@ -37,10 +41,26 @@ class Client:
         self.name = name
         self.device_list = []
 
+        self.nornir = InitNornir(
+            config_file=f"{os.path.dirname(__file__)}\..\..\inputfiles\config.yaml",
+            inventory={
+                'options': {
+                    'host_file': f"{dir}\inputfiles\inventory\hosts.yaml",
+                    'group_file': f"{dir}\inputfiles\inventory\groups.yaml",
+                    'defaults_file': f"{dir}\inputfiles\inventory\defaults.yaml",
+                }
+            }
+        )
+
+        self.nornir_get_devices()
+        self.nornir_get_commands()
+
         if kdbx_filename is None:
             self.kdbx_database = None
         else:
             self.kdbx_database = self.get_kdbx_database(kdbx_filename)
+
+        
 
     def get_j2_template(self):
         '''
@@ -64,6 +84,22 @@ class Client:
         # Open the default config_data.yaml file and load the content to a variable
         with open(f"{self.dir}/inputfiles/config_data.yaml") as file:
             self.j2_data = yaml.safe_load(file)
+
+
+    def nornir_get_devices(self):
+        '''
+        Get device list from Nornir inventory and create a device object with the information
+        collected from it
+        '''
+
+        for host, host_object in self.nornir.inventory.hosts.items():
+            credentials = {
+                            'username': host_object.username,
+                            'password': host_object.password,
+                            'enable_secret': None
+                        }
+            device = Device(self, host_object.platform, host_object.hostname, credentials)
+            self.device_list.append(device)
 
     def get_devices_from_csv(self):
         '''
@@ -157,6 +193,17 @@ class Client:
         return {'username': entry.username, 'password': entry.password, 'enable_secret': None}
 
 
+    def nornir_get_commands(self):
+        '''
+        Get command list from Nornir inventory and create a command object with the information
+        collected from it
+        '''
+
+        self.command_list = self.nornir.config.user_defined['NAPymiko_data']
+        # Define environment variable for TextFSM, so that the package can get the correct templates
+        os.environ['NET_TEXTFSM'] = os.path.join(os.path.dirname(__file__), '../../dep/ntc-templates/ntc_templates/templates')
+
+
     def get_commands(self):
         '''
         Get list of all supported commands of this script to be used in GetConfigs.
@@ -165,6 +212,23 @@ class Client:
             self.command_list = json.load(cmds)
         # Define environment variable for TextFSM, so that the package can get the correct templates
         os.environ['NET_TEXTFSM'] = os.path.join(os.path.dirname(__file__), '../../dep/ntc-templates/ntc_templates/templates')
+
+
+    def nornir_get_configs(self, get_configs_info: list) -> None:
+        '''
+        Function used to interact with the devices in Nornir, takind advantage of Nornir
+        '''
+
+        def run_get_configs(task: Task, config_info: str) -> Result:
+            results_dict = {}
+            command_list = self.nornir.config.user_defined['NAPymiko_data'][config_info]['commands'][task.host.platform]
+            for command in command_list:
+                results_dict[command] = task.run(name=command, task=netmiko_send_command, command_string=command)
+            return Result(host=task.host, result=results_dict)
+
+        self.get_configs_results = {}
+        for config_info in get_configs_info:           
+            self.get_configs_results[config_info] = self.nornir.run(name=config_info, task=run_get_configs, config_info=config_info)
 
 
     def get_concurrent_configs(self, get_configs_info: list) -> None:
@@ -200,6 +264,23 @@ class Client:
             for future in as_completed(future_list):
                 future.result()
 
+
+    def nornir_generate_data_dict(self) -> dict:
+        '''
+        Generate a data structured with all the data used to interact with the devices and the
+        output of the interaction. Only the relevant data will be stored
+        '''
+
+        print(f"{Colors.OK_GREEN}[>]{Colors.END} Generating script output")
+
+        client_dict = self.__dict__.copy()
+        del client_dict['device_list']
+        del client_dict['command_list']
+        del client_dict['kdbx_database']
+        del client_dict['nornir']
+        print(client_dict.keys())
+
+
     @write_to_file
     def generate_data_dict(self) -> dict:
         '''
@@ -213,6 +294,7 @@ class Client:
         client_dict = self.__dict__.copy()
         del client_dict['kdbx_database']
         del client_dict['command_list']
+        del client_dict['nornir']
 
         # Transform device objects in dict and remove unnecessary key/values
         device_list = []
@@ -238,28 +320,22 @@ class Client:
 
     @write_to_file
     def generate_config_parsed(self, script_data: dict) -> dict:
-        '''
-        Merge output parsed from TextFSM package from all devices in a single file
-        '''
-
+        
         print(f"{Colors.OK_GREEN}[>]{Colors.END} Merging output parsed")
-        output_parsed_dict = {}
+        output_parsed_dict = defaultdict(list)  # Using defaultdict to handle missing keys gracefully
 
-        for device in script_data['device_list']:
-            merged_output = {
-                'device_hostname': device['hostname'],
-                'device_ip_address': device['ip_address']
-            }
-            for config in device['config_list']:
+        for device in script_data.get('device_list', []):  # Handling missing 'device_list'
+            for config in device.get('config_list', []):  # Handling missing 'config_list'
                 config_info = config.get('info')
-                output_parsed_list = []
-                if config and len(config) > 0 and 'output_parsed' in config.keys() and config['output_parsed']:
+                merged_output = {
+                    'device_hostname': device['hostname'],
+                    'device_ip_address': device['ip_address']
+                }
+                if 'output_parsed' in config:
                     for output_parsed in config['output_parsed']:
-                        merged_output.update(output_parsed)
-                        output_parsed_list.append(merged_output.copy())
+                        output_parsed_dict[config_info].append({**merged_output, **output_parsed})
                 else:
-                    output_parsed_list.append(merged_output)
-            output_parsed_dict.setdefault(config_info, []).extend(output_parsed_list)
+                    output_parsed_dict[config_info].append(merged_output)
 
         return output_parsed_dict
 

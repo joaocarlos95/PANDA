@@ -1,7 +1,8 @@
 import os
-import sys
 import time
+import yaml
 from flask import Flask, render_template, request, jsonify, Response
+from nornir import InitNornir
 
 from src.classes.client import Client
 from src.classes.colors import Colors
@@ -10,38 +11,10 @@ from src.classes.colors import Colors
 CLIENT_NAME = "ANA Aeroportos"
 ROOT_DIRECTORY = "C:/Users/jlcosta/OneDrive - A2itwb Tecnologia S.A/01. Clientes/ANA Aeroportos/04. Automation"
 CONFIG_OPTIONS = {
-    'get_configs': {
-        'Device': [
-            {'id': 'Device Configuration', 'name': 'Device Configuration', 'label': 'Configuration', 'status': ''},
-            {'id': 'Device Information', 'name': 'Device Information', 'label': 'Information', 'status': ''},
-            {'id': 'Device Directory', 'name': 'Device Directory', 'label': 'Directory', 'status': 'disabled'},
-            {'id': 'Device Management', 'name': 'Device Management', 'label': 'Management', 'status': ''},
-            {'id': 'Device Licence', 'name': 'Device Licence', 'label': 'Licence', 'status': 'disabled'},
-        ],
-        'Interface': [
-            {'id': 'Interface Statistics', 'name': 'Interface Statistics', 'label': 'Statistics', 'status': 'disabled'},
-            {'id': 'Interface Information', 'name': 'Interface Information', 'label': 'Information', 'status': 'disabled'},
-            {'id': 'Interface Status', 'name': 'Interface Status', 'label': 'Status', 'status': 'enable'},
-        ],
-        'Discovery Protocols': [
-            {'id': 'Neighbors CDP', 'name': 'Neighbors CDP', 'label': 'Neighbors CDP', 'status': ''},
-            {'id': 'Neighbors LLDP', 'name': 'Neighbors LLDP', 'label': 'Neighbors LLDP', 'status': ''},
-            {'id': 'CDP Configuration', 'name': 'CDP Configuration', 'label': 'CDP Configuration', 'status': ''},
-        ],
-        'Network Diagram': [
-            {'id': 'Network Diagram CDP', 'name': 'Network Diagram CDP', 'label': 'CDP Neighbors', 'status': ''},
-            {'id': 'Network Diagram LLDP', 'name': 'Network Diagram LLDP', 'label': 'LLDP Neighbors', 'status': ''},
-        ],
-        'Others': [
-            {'id': 'MAC Address Table', 'name': 'MAC Address Table', 'label': 'MAC Address Table', 'status': 'disabled'},
-            {'id': 'Local Users', 'name': 'Local Users', 'label': 'Local Users', 'status': ''},
-        ]
-    },
     'set_configs': {
         'Authentication': [
-            {'id': 'Device Management', 'name': 'Device Management', 'label': 'Management', 'status': 'disabled'},
+            {'id': 'Device Management', 'name': 'Device Management', 'label': 'Management', 'status': ''},
             {'id': 'TACACS', 'name': 'TACACS', 'label': 'TACACS+', 'status': ''},
-            {'id': 'Local_Users', 'name': 'Local_Users', 'label': 'Local Users', 'status': ''},
         ],
         'VLAN': [
             {'id': 'VLAN', 'name': 'VLAN', 'label': 'VLAN', 'status': ''},
@@ -92,6 +65,15 @@ def set_configs():
         template_context['root_directory'] = ROOT_DIRECTORY
     return render_template('set_configs.html', config_options=CONFIG_OPTIONS['set_configs'], **template_context)
 
+@app.route('/generate_configs')
+def generate_configs():
+    template_context = {}
+    if CLIENT_NAME is not None:
+        template_context['client_name'] = CLIENT_NAME
+    if ROOT_DIRECTORY is not None:
+        template_context['root_directory'] = ROOT_DIRECTORY
+    return render_template('generate_configs.html', config_options=CONFIG_OPTIONS['set_configs'], **template_context)
+
 @app.route('/update_config_options', methods=['POST'])
 def update_config_options():
     global CONFIG_OPTIONS
@@ -118,7 +100,9 @@ def get_checked_options(method: str):
     checked_options = []
     for category, options in CONFIG_OPTIONS[method].items():
         for option in options:
-            if option['status'] == 'checked':
+            if option['status'] == 'checked' and method == 'get_configs':
+                checked_options.append(option['id'])
+            elif option['status'] == 'checked' and method == 'set_configs':
                 checked_options.append(option['id'])
 
     return checked_options
@@ -136,15 +120,15 @@ def run_get_configs():
 
     # Create a new client object and initialize all data (command list)
     client = Client(ROOT_DIRECTORY, CLIENT_NAME)
-    client.get_devices_from_csv()
-    client.get_commands()
 
     # Get device information for each information requested
-    client.get_concurrent_configs(get_configs_info=get_configs_info)
+    # client.get_concurrent_configs(get_configs_info=get_configs_info)
+    client.nornir_get_configs(get_configs_info=get_configs_info)
 
     # Generate script data, converting all class objects to nested dicts
-    script_data = client.generate_data_dict()
-    output_parsed = client.generate_config_parsed(script_data)
+    # script_data = client.generate_data_dict()
+    client.nornir_generate_data_dict()
+    # output_parsed = client.generate_config_parsed(script_data)
 
     # Generate diagrams using CDP or LLDP neighbors
     if 'Network Diagram CDP' in get_configs_info:
@@ -185,5 +169,38 @@ def run_set_configs():
     return Response(status=204)
 
 
+def init_config_options():
+    ''''''
+
+    global CONFIG_OPTIONS
+
+    get_configs = {}
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    with open(f"{current_directory}\inputfiles\config.yaml", 'r') as napymiko_config_file:
+        napymiko_config = yaml.safe_load(napymiko_config_file)
+
+        for key, value in napymiko_config['user_defined']['NAPymiko_data'].items():
+            if get_configs.get(value['group']) is None:
+                get_configs[value['group']] = [{
+                    'id': key,
+                    'name': key,
+                    'label': value['label'],
+                    'status': value['status']
+                }]
+            else:
+                get_configs[value['group']].append({
+                    'id': key,
+                    'name': key,
+                    'label': value['label'],
+                    'status': value['status']
+                })
+        
+    CONFIG_OPTIONS['get_configs'] = get_configs
+
+
+
 if __name__ == "__main__":
+
+    init_config_options()
+
     app.run(debug=True)

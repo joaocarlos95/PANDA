@@ -28,10 +28,6 @@ if __name__ == '__main__':
             elif 'Client Name:' in line:
                 line = file.readline()
                 client_name = line.split('>')[1].strip() if '>' in line and len(set(line)) > 2 else raise_exception('Client name not specified')
-            elif 'Keepass Database:' in line:
-                line = file.readline()
-                if '>' in line and len(set(line)) > 2 and '.kdbx' in line:
-                    kdbx_filename = line.split('>')[1].strip()
             elif '[x]' in line or '[X]' in line:
                 info_requested = line.split('] ')[1].rstrip().lower().replace(" ", "_")
                 config_blocks.append(info_requested)
@@ -51,7 +47,7 @@ if __name__ == '__main__':
             print(f"{Colors.NOK_RED}{Colors.END} Please answer with Yes or No.")
 
     # Create a new client object
-    client = Client(root_dir, client_name, kdbx_filename=kdbx_filename)
+    client = Client(root_dir, client_name, kdbx_filename=None)
 
     # Initialize all data (templates, templates data)
     client.get_j2_template()
@@ -63,5 +59,6 @@ if __name__ == '__main__':
     # # Generate script data, converting all class objects to nested dicts
     # script_data = client.generate_data_dict()
     # output_parsed_dict = client.generate_config_parsed(script_data)
+    # print(output_parsed_dict)
 
     print(f"Execution time: {time.time() - start_time} seconds")

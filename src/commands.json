@@ -137,5 +137,79 @@
             "extreme": ["show system login"],
             "extreme_exos": ["show accounts"]
         }
+    },
+    "Transceiver Information": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show port transceiver basic-only"],
+            "extreme_exos": ["show ports transceiver information detail"]
+        }
+    },
+    "Interface Information": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show ports information detail"]
+        }
+    },
+    "SNMP Access": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 access"]
+        }
+    },
+    "SNMP Community": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 community"]
+        }
+    },
+    "SNMP Filter Profile": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 filter-profile"]
+        }
+    },
+    "SNMP Filter": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 filter"]
+        }
+    },
+    "SNMP Group": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 group"]
+        }
+    },
+    "SNMP Traps": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 notify"]
+        }
+    },
+    "SNMP Server": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 target-addr"]
+        }
+    },
+    "SNMP Target Parameters": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 target-params"]
+        }
+    },
+    "SNMP User": {
+        "textfsm": true,
+        "commands": {
+            "extreme_exos": ["show snmpv3 user"]
+        }
+    },
+    "Power Information": {
+        "textfsm": true,
+        "commands": {
+            "extreme": ["show system"],
+            "extreme_exos": ["show power detail"]
+        }
     }
 }

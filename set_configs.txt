@@ -2,19 +2,10 @@
 | CLIENT INFORMATION																						|
 +-----------------------------------------------------------------------------------------------------------+
  Root Directory: main directory for the script output
-	> C:\Users\jlcosta\Desktop\Documents\01. Clientes\ANA Aeroportos\03. Automation
+	> C:/Users/jlcosta/OneDrive - A2itwb Tecnologia S.A/01. Clientes/ANA Aeroportos/04. Automation
 
  Client Name: name of the client (output of the script is saved in a folder with the client name)
 	> ANA Aeroportos
-
-+-----------------------------------------------------------------------------------------------------------+
-| KEEPASS INFORMATION 																						|
-+-----------------------------------------------------------------------------------------------------------+
- Keepass Database: directory where the keepass database is stored
-	> C:\Users\jlcosta\Desktop\Documents\Credentials.kdbx
-
- NOTE: if not applicable, delete this part and add to the device_list.csv file the username
-	   and password for each device
 
 +-----------------------------------------------------------------------------------------------------------+
 | CONFIGURATIONS TO BE GENERATED																			|
@@ -22,10 +13,10 @@
  [ ] General
  [ ] VLAN
  [ ] Ports
- [ ] Device Management
+ [X] Device Management
  [ ] TACACS
  [ ] SNMP
- [X] CDP
+ [ ] CDP
  [ ] LLDP
  
  [ ] Interfaces
