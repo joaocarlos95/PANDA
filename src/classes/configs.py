@@ -1,4 +1,3 @@
-import textfsm
 from datetime import datetime
 from netmiko.utilities import get_structured_data
 #from OuiLookup import OuiLookup
