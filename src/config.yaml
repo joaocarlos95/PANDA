@@ -2,15 +2,16 @@
 inventory:
     plugin: SimpleInventory
     options:
-        host_file: "C:/Users/joaoc/OneDrive - A2itwb Tecnologia S.A/02. NAPymiko/inputfiles/inventory/hosts.yaml"
-        group_file: "C:/Users/joaoc/OneDrive - A2itwb Tecnologia S.A/02. NAPymiko/inputfiles/inventory/groups.yaml"
-        defaults_file: "C:/Users/joaoc/OneDrive - A2itwb Tecnologia S.A/02. NAPymiko/inputfiles/inventory/defaults.yaml"
+        host_file: "C:/Users/jlcosta/OneDrive - A2itwb Tecnologia S.A/02. PANDA/inputfiles/inventory/hosts.yaml"
+        group_file: "C:/Users/jlcosta/OneDrive - A2itwb Tecnologia S.A/02. PANDA/inputfiles/inventory/groups.yaml"
+        defaults_file: "C:/Users/jlcosta/OneDrive - A2itwb Tecnologia S.A/02. PANDA/inputfiles/inventory/defaults.yaml"
 runner:
     plugin: threaded
     options:
         num_workers: 40
 user_defined:
-    NAPymiko_data:
+    PANDA_data:
+        # Device related information
         device_configuration:
             group: Device
             label: Configuration
@@ -26,6 +27,17 @@ user_defined:
                     - show config
                 extreme_exos:
                     - show config
+        device_file_system:
+            group: Device
+            label: File System
+            status: disabled
+            commands:
+                cisco_ios:
+                    - dir
+                    - show file system
+                cisco_nxos:
+                    - dir
+                    - show file system
         device_information:
             group: Device
             label: Information
@@ -41,17 +53,22 @@ user_defined:
                     - show system hardware
                 extreme_exos:
                     - show system
-        device_file_system:
+        device_license:
             group: Device
-            label: Directory
+            label: License Status
             status: disabled
             commands:
                 cisco_ios:
-                    - dir
-                    - show file system
-                cisco_nxos:
-                    - dir
-                    - show file system
+                    - show license status
+        local_users:
+            group: Device
+            label: Local Users
+            status: enabled
+            commands:
+                extreme:
+                    - show system login
+                extreme_exos:
+                    - show accounts
         device_management:
             group: Device
             label: Management
@@ -61,15 +78,10 @@ user_defined:
                     - show ssh
                     - show telnet
                     - show webview
+                    - show system login
                 extreme_exos:
                     - show management
-        device_license:
-            group: Device
-            label: Status
-            status: disabled
-            commands:
-                cisco_ios:
-                    - show license status
+                    - show accounts
         device_power_information:
             group: Device
             label: Power Information
@@ -79,13 +91,7 @@ user_defined:
                     - show system
                 extreme_exos:
                     - show power detail
-        interface_statistics:
-            group: Interface
-            label: Statistics
-            status: disabled
-            commands:
-                cisco_ios:
-                    - show interfaces counters
+        # Interface related information
         interface_information:
             group: Interface
             label: Information
@@ -95,6 +101,13 @@ user_defined:
                     - show interfaces
                 extreme_exos:
                     - show ports information detail
+        interface_statistics:
+            group: Interface
+            label: Statistics
+            status: disabled
+            commands:
+                cisco_ios:
+                    - show interfaces counters
         interface_status:
             group: Interface
             label: Status
@@ -113,154 +126,6 @@ user_defined:
                     - show port transceiver basic-only
                 extreme_exos:
                     - show ports transceiver information detail
-        snmp_access:
-            group: Monitoring
-            label: SNMP Access
-            status: enabled
-            commands:
-                extreme_exos:
-                    - show snmpv3 access
-        snmp_community:
-            group: Monitoring
-            label: SNMP Community
-            status: enabled
-            commands:
-                extreme_exos:
-                    - show snmpv3 community
-        snmp_filter_profile:
-            group: Monitoring
-            label: SNMP Filter Profile
-            status: enabled
-            commands:
-                extreme_exos:
-                    - show snmpv3 fiter-profile
-        snmp_filter:
-            group: Monitoring
-            label: SNMP Filter
-            status: enabled
-            commands:
-                extreme_exos: 
-                    - show snmpv3 fiter
-        snmp_group:
-            group: Monitoring
-            label: SNMP Group
-            status: enabled
-            commands:
-                extreme_exos: 
-                    - show snmpv3 group
-        snmp_traps:
-            group: Monitoring
-            label: SNMP Traps
-            status: enabled
-            commands:
-                extreme_exos: 
-                    - show snmpv3 traps
-        snmp_server:
-            group: Monitoring
-            label: SNMP Server
-            status: enabled
-            commands:
-                extreme_exos: 
-                    - show snmpv3 target-addr
-        snmp_target_parameters:
-            group: Monitoring
-            label: SNMP Target Parameters
-            status: enabled
-            commands:
-                extreme_exos:
-                    - show snmpv3 target-params
-        snmp_user:
-            group: Monitoring
-            label: SNMP User
-            status: enabled
-            commands:
-                extreme_exos: 
-                    - show snmpv3 user
-        cdp_neighbors:
-            group: Discovery Protocols
-            label: CDP Neighbors
-            status: enabled
-            commands:
-                cisco_ios: 
-                    - show cdp neighbors detail
-                cisco_nxos: 
-                    - show cdp neighbors detail
-                cisco_wlc: 
-                    - show cdp neighbors detail
-                extreme: 
-                    - show neighbors
-                extreme_exos: 
-                    - show cdp neighbor detail
-        lldp_neighbors:
-            group: Discovery Protocols
-            label: LLDP Neighbors
-            status: enabled
-            commands:
-                alcatel_aos: 
-                    - show lldp remote-system
-                cisco_ios: 
-                    - show lldp neighbors detail
-                cisco_nxos: 
-                    - show lldp neighbors detail
-                extreme: 
-                    - show lldp port remote-info
-                extreme_exos:
-                    - show lldp neighbor detailed
-        cdp_configuration:
-            group: Discovery Protocols
-            label: CDP Configuration
-            status: enabled
-            commands:
-                extreme: 
-                    - show ciscodp
-                extreme_exos:
-                    - show cdp
-        # cdp_diagram:
-        #     group: Network Diagram
-        #     label: CDP Neighbors Diagram
-        #     status: enabled
-        #     commands:
-        #         cisco_ios:
-        #             - show cdp neighbors detail
-        #         cisco_nxos:
-        #             - show cdp neighbors detail
-        #         cisco_wlc:
-        #             - show cdp neighbors detail
-        #         extreme:
-        #             - show neighbors
-        #         extreme_exos:
-        #             - show cdp neighbor detail
-        # lldp_diagram:
-        #     group: Network Diagram
-        #     label: LLDP Neighbors Diagram
-        #     status: enabled
-        #     commands:
-        #         alcatel_aos:
-        #             - show lldp remote-system
-        #         cisco_ios:
-        #             - show lldp neighbors detail
-        #         cisco_nxos:
-        #             - show lldp neighbors detail
-        #         extreme:
-        #             - show lldp port remote-info
-        #         extreme_exos:
-        #             - show lldp neighbor detailed
-        local_users:
-            group: Others
-            label: Local Users
-            status: enabled
-            commands:
-                extreme:
-                    - show system login
-                extreme_exos:
-                    - show accounts
-        mac_address_table:
-            group: Others
-            label: MAC Address Table
-            status: disabled
-            commands:
-                cisco_ios:
-                    - show mac address-table
         vlan_ports:
             group: Interface
             label: VLAN Ports
@@ -270,3 +135,119 @@ user_defined:
                     - show vlan portinfo
                 extreme_exos:
                     - show ports vid port-number
+        # Monitoring related information
+        snmp_credentials:
+            group: Monitoring
+            label: SNMP Credentials
+            status: enabled
+            commands:
+                extreme_exos:
+                    - show snmpv3 group
+                    - show snmpv3 access
+                    - show snmpv3 user
+                    - show snmpv3 community
+        snmp_filters:
+            group: Monitoring
+            label: SNMP Filters
+            status: enabled
+            commands:
+                extreme_exos:
+                    - show snmpv3 target-params
+                    - show snmpv3 fiter
+                    - show snmpv3 fiter-profile
+        snmp_server:
+            group: Monitoring
+            label: SNMP Server
+            status: enabled
+            commands:
+                extreme_exos: 
+                    - show snmpv3 target-addr
+                    - show snmpv3 target-params
+                    - show snmpv3 notify
+        snmp_traps:
+            group: Monitoring
+            label: SNMP Traps
+            status: enabled
+            commands:
+                extreme_exos: 
+                    - show snmpv3 notify
+        # Discovery Protocols related information
+        dp_neighbors:
+            group: Discovery Protocols
+            label: Neighbors
+            status: enabled
+            commands:
+                alcatel_aos: 
+                    - show lldp remote-system
+                cisco_ios: 
+                    - show cdp neighbors detail
+                    - show lldp neighbors detail
+                cisco_nxos: 
+                    - show cdp neighbors detail
+                    - show lldp neighbors detail
+                cisco_wlc: 
+                    - show cdp neighbors detail
+                extreme: 
+                    - show neighbors
+                    - show lldp port remote-info
+                extreme_exos: 
+                    - show cdp neighbor detail
+                    - show lldp neighbor detailed
+        dp_configuration:
+            group: Discovery Protocols
+            label: Configuration
+            status: enabled
+            commands:
+                extreme: 
+                    - show ciscodp
+                extreme_exos:
+                    - show cdp
+        # Others
+        cdp_diagram:
+            group: Others
+            label: CDP Diagram
+            status: disabled
+            commands:
+                cisco_ios:
+                    - show cdp neighbors detail
+                cisco_nxos:
+                    - show cdp neighbors detail
+                cisco_wlc:
+                    - show cdp neighbors detail
+                extreme:
+                    - show neighbors
+                extreme_exos:
+                    - show cdp neighbor detail
+        lldp_diagram:
+            group: Others
+            label: LLDP Diagram
+            status: disabled
+            commands:
+                alcatel_aos:
+                    - show lldp remote-system
+                cisco_ios:
+                    - show lldp neighbors detail
+                cisco_nxos:
+                    - show lldp neighbors detail
+                extreme:
+                    - show lldp port remote-info
+                extreme_exos:
+                    - show lldp neighbor detailed
+        mac_address_table:
+            group: Others
+            label: MAC Address Table
+            status: enabled
+            commands:
+                cisco_ios:
+                    - show mac address-table
+                extreme_exos:
+                    - show fdb
+    Netbox_data:
+        # Netbox related information
+        device_type:
+            group: Device
+            label: Device Type
+            status: enabled
+            PANDA_reference:
+                - device_information
+    models_database: "C:/Users/jlcosta/OneDrive - A2itwb Tecnologia S.A/02. PANDA/inputfiles/inventory/device_database.yaml"

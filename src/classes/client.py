@@ -1,65 +1,73 @@
 import csv
+import inspect
 import json
 import os
 import yaml
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from getpass import getpass
 from jinja2 import Environment, FileSystemLoader
+from N2G import yed_diagram
+from netmiko.utilities import get_structured_data
 from nornir import InitNornir
 from nornir.core.task import Result, Task
-from nornir_netmiko.tasks import netmiko_send_command
-from nornir_utils.plugins.functions import print_result
+from nornir_netmiko import netmiko_send_command
+from nornir_salt.plugins.functions import ResultSerializer
+from nornir_utils.plugins.tasks.files import write_file
+from OuiLookup import OuiLookup
 from typing import Literal
 
 from .decorators import write_to_file
-
-import inspect
-from datetime import date
-from N2G import yed_diagram
-from pykeepass import PyKeePass
 from .device import Device
 from .colors import Colors
 
 
+
+# Define environment variable for TextFSM, so that the package can get the correct templates
+os.environ['NET_TEXTFSM'] = os.path.join(os.path.dirname(__file__), '../../dep/ntc-templates/ntc_templates/templates')
+
 MAX_WORKERS = 40
+
 
 
 class Client:
     '''
     Class used to define client variables, which are used by other classes, and 
     to define the script main execution, namely import and export data.
+
+    Attributes:
+        dir (str): Main directory where the client is located
+        name (str): Name of the client
+        nornir (InitNornir): Nornir class to interact with the devices
     '''
 
-    def __init__(self, dir, name, kdbx_filename=None, cmd_list=None, ftp_server=None):
+    def __init__(self, dir, name):
         '''
-        Constructor used to create a new client object, definig its main directory, name and
+        Constructor used to create a new client object, defining its main directory, name and
         threading lock to avoid race conditions when accessing multiple devices at the same time
         to perform operations.
+
+        Args:
+            dir (str): Main directory where the client is located
+            name (str): Name of the client
         '''
+
         self.dir = dir
         self.name = name
-        self.device_list = []
 
+        # Define the inventory as a dictionary with the hosts, groups and defaults as its keys
         self.nornir = InitNornir(
-            config_file=f"{os.path.dirname(__file__)}\..\..\inputfiles\config.yaml",
+            config_file=f"{os.path.dirname(__file__)}/../config.yaml",
             inventory={
                 'options': {
-                    'host_file': f"{dir}\inputfiles\inventory\hosts.yaml",
-                    'group_file': f"{dir}\inputfiles\inventory\groups.yaml",
-                    'defaults_file': f"{dir}\inputfiles\inventory\defaults.yaml",
+                    'host_file': f"{dir}/inputfiles/inventory/hosts.yaml",
+                    'group_file': f"{dir}/inputfiles/inventory/groups.yaml",
+                    'defaults_file': f"{dir}/inputfiles/inventory/defaults.yaml",
                 }
             }
         )
-
-        self.nornir_get_devices()
-        self.nornir_get_commands()
-
-        if kdbx_filename is None:
-            self.kdbx_database = None
-        else:
-            self.kdbx_database = self.get_kdbx_database(kdbx_filename)
-
+        # self.nornir_get_commands()
         
 
     def get_j2_template(self):
@@ -86,20 +94,20 @@ class Client:
             self.j2_data = yaml.safe_load(file)
 
 
-    def nornir_get_devices(self):
-        '''
-        Get device list from Nornir inventory and create a device object with the information
-        collected from it
-        '''
+    # def nornir_get_devices(self):
+    #     '''
+    #     Get device list from Nornir inventory and create a device object with the information
+    #     collected from it
+    #     '''
 
-        for host, host_object in self.nornir.inventory.hosts.items():
-            credentials = {
-                            'username': host_object.username,
-                            'password': host_object.password,
-                            'enable_secret': None
-                        }
-            device = Device(self, host_object.platform, host_object.hostname, credentials)
-            self.device_list.append(device)
+    #     for host, host_object in self.nornir.inventory.hosts.items():
+    #         credentials = {
+    #             'username': host_object.username,
+    #             'password': host_object.password,
+    #             'enable_secret': None
+    #         }
+    #         device = Device(self, host_object.platform, host_object.hostname, credentials)
+    #         self.device_list.append(device)
 
     def get_devices_from_csv(self):
         '''
@@ -193,43 +201,80 @@ class Client:
         return {'username': entry.username, 'password': entry.password, 'enable_secret': None}
 
 
-    def nornir_get_commands(self):
-        '''
-        Get command list from Nornir inventory and create a command object with the information
-        collected from it
-        '''
-
-        self.command_list = self.nornir.config.user_defined['NAPymiko_data']
-        # Define environment variable for TextFSM, so that the package can get the correct templates
-        os.environ['NET_TEXTFSM'] = os.path.join(os.path.dirname(__file__), '../../dep/ntc-templates/ntc_templates/templates')
-
-
     def get_commands(self):
         '''
         Get list of all supported commands of this script to be used in GetConfigs.
         '''
         with open(f"{os.path.dirname(__file__)}/../commands.json", 'r', encoding='utf-8') as cmds:
             self.command_list = json.load(cmds)
-        # Define environment variable for TextFSM, so that the package can get the correct templates
-        os.environ['NET_TEXTFSM'] = os.path.join(os.path.dirname(__file__), '../../dep/ntc-templates/ntc_templates/templates')
 
 
-    def nornir_get_configs(self, get_configs_info: list) -> None:
-        '''
-        Function used to interact with the devices in Nornir, takind advantage of Nornir
-        '''
+    def nornir_get_configs(self, get_configs_info: list, nornir_filtered) -> None:
+        """
+        Function used to interact with the devices in Nornir.
+
+        Args:
+            get_configs_info (list): List of config categories to be gathered from the devices
+            nornir_filtered (Nornir): Nornir object with the devices to interact with
+        """
 
         def run_get_configs(task: Task, config_info: str) -> Result:
-            results_dict = {}
-            command_list = self.nornir.config.user_defined['NAPymiko_data'][config_info]['commands'][task.host.platform]
-            for command in command_list:
-                results_dict[command] = task.run(name=command, task=netmiko_send_command, command_string=command)
-            return Result(host=task.host, result=results_dict)
+            """
+            Nornir task function to send commands to a device and save the output to
+            a file.
 
-        self.get_configs_results = {}
-        for config_info in get_configs_info:           
-            self.get_configs_results[config_info] = self.nornir.run(name=config_info, task=run_get_configs, config_info=config_info)
+            Args:
+                task (Task): Nornir task object
+                config_info (str): Name of the GetConfigs config info
 
+            Returns:
+                Result: Nornir result object
+            """
+
+            # Get the commands to be sent to the device, based on Netmiko host platform
+            commands = self.nornir.config.user_defined['PANDA_data'][config_info]['commands'][task.host.platform]
+
+            # Iterate over the commands and run them in the device, saving the output to a file
+            for command in commands:
+                print(f"{Colors.OK_GREEN}[{task.host.hostname}]{Colors.END} Running command: {command}")
+
+                try:
+                    # Get device prompt in order to use it as expect_string when running a command
+                    connection = task.host.get_connection('netmiko', task.nornir.config)
+                    prompt = connection.find_prompt()
+                    # Run the command in the device
+                    result = task.run(
+                        name=command,
+                        task=netmiko_send_command,
+                        command_string=command,
+                        expect_string=prompt
+                    )
+                except Exception as exception:
+                    print(exception)
+
+                path = f"{self.dir}/outputfiles/GetConfigs/{config_info}/{datetime.now().strftime('%Y%m%d')}/{command.replace(' ', '_')}"
+                filename = f"[{datetime.now().strftime('%Y%m%d%H%M%S')}] {task.host.name} ({task.host.hostname}) - {command}.txt"
+                os.makedirs(f"{path}", exist_ok=True)
+
+                task.run(
+                    name="save_to_file",
+                    task=write_file,
+                    filename=f"{path}/{filename}",
+                    content=result.result
+                )
+
+            return Result(host=task.host)
+
+        # Get the results of the GetConfigs from each device, grouped by config category
+        self.get_config_results = {}
+        for config_info in get_configs_info:
+            result = nornir_filtered.run(
+                name=config_info,
+                task=run_get_configs,
+                config_info=config_info
+            )
+            self.get_config_results[config_info] = result
+            
 
     def get_concurrent_configs(self, get_configs_info: list) -> None:
         '''
@@ -264,22 +309,125 @@ class Client:
             for future in as_completed(future_list):
                 future.result()
 
-
+    @write_to_file
     def nornir_generate_data_dict(self) -> dict:
         '''
         Generate a data structured with all the data used to interact with the devices and the
         output of the interaction. Only the relevant data will be stored
         '''
+       
+        def update_mac_address_table(output_parsed):
+            for i in output_parsed:
+                try:
+                    i['vendor'] = list(OuiLookup().query(i['mac_address'])[0].values())[0]                   
+                except Exception as exception:
+                    if 'could not be found' in str(exception):
+                        i['vendor'] = ''
+            return output_parsed
 
-        print(f"{Colors.OK_GREEN}[>]{Colors.END} Generating script output")
+        script_data = {
+            'client_name': self.name,
+            'client_dir': self.dir,
+            'get_configs': {}
+        }
 
-        client_dict = self.__dict__.copy()
-        del client_dict['device_list']
-        del client_dict['command_list']
-        del client_dict['kdbx_database']
-        del client_dict['nornir']
-        print(client_dict.keys())
+        for config_info, config_info_result in self.get_config_results.items():
+            if config_info not in script_data['get_configs']:
+                script_data['get_configs'][config_info] = {}
 
+            config_info_result_serialized = ResultSerializer(config_info_result, add_details=True)
+            for host, host_result in config_info_result_serialized.items():
+                del host_result[config_info]
+                if 'save_to_file' in host_result.keys():
+                    del host_result['save_to_file']
+                hostname = f"{host} ({self.nornir.inventory.hosts[host].hostname})"
+
+                command_result_dict = {}
+                for command, command_result in host_result.items():
+
+                    output_parsed = self.parse_command_result(
+                        device_information=self.nornir.inventory.hosts[host],
+                        config_info=config_info,
+                        textfsm_args={
+                            'raw_output': command_result['result'],
+                            'platform': self.nornir.inventory.hosts[host].platform,
+                            'command': command
+                        }   
+                    )
+                    
+                    if f"update_{config_info}" in locals():
+                        output_parsed = locals()[f"update_{config_info}"](output_parsed)
+
+                    command_result_dict[command] = {
+                        'output': command_result['result'],
+                        'output_parsed': output_parsed,
+                        'status': 'Failed' if command_result['failed'] else 'Success'
+                    }
+                
+                script_data['get_configs'][config_info][hostname] = command_result_dict
+
+        return script_data
+
+
+    def parse_command_result(self, device_information, config_info, textfsm_args) -> list|None:
+        '''
+        Use TextFSM to parse the output of the command. The get_structured_data receives the raw
+        output, device platform and command issued.
+        '''
+               
+        try:
+            print(f"{Colors.OK_GREEN}[{device_information.hostname}]{Colors.END} Parsing output: {textfsm_args['command']}")
+            output_parsed = get_structured_data(**textfsm_args)
+            # Delete output_parsed variable since output couldn't be converted
+            if isinstance(output_parsed, str):
+                print(f"{Colors.NOK_RED}[{device_information.hostname}]{Colors.END} Couldn't parse the output of the command: {textfsm_args['command']}")
+                return None
+            
+            # For the extreme OS, consider all entries where the protocol is equal to CDP
+            if device_information.platform == 'extreme' and config_info == 'CDP Neighbors':
+                output_parsed_tmp = []
+                for item in output_parsed:
+                    if item.get('protocol') == 'ciscodp' or item.get('protocol') == 'Ci':
+                        del item['protocol']
+                        output_parsed_tmp.append(item)
+                output_parsed = output_parsed_tmp
+            # For the extreme OS, consider all entries where the protocol is equal to LLDP
+            elif device_information.platform == 'extreme' and config_info == 'CDP Neighbors':
+                output_parsed_tmp = []
+                for item in output_parsed:
+                    if item.get('protocol') == 'lldp' or item.get('protocol') == 'LL':
+                        del item['protocol']
+                        output_parsed_tmp.append(item)
+                output_parsed = output_parsed_tmp
+            
+            # For the extreme EXOS, split the switch-stacks into multiple entries
+            elif device_information.platform == 'extreme_exos' and config_info == 'Device Information':
+                output_parsed_tmp = []
+                # For each device in the stack, create a new entry
+                for entry in output_parsed:
+                    serial_numbers = entry['serial_number']
+                    hardware_items = entry['hardware']
+                    # Create a new entry for each combination of serial number and hardware item
+                    for serial_number, hardware_item in zip(serial_numbers, hardware_items):
+                        new_entry = {
+                            'location': entry['location'],
+                            'mac_addr': entry['mac_addr'],
+                            'current_time': entry['current_time'],
+                            'last_boot': entry['last_boot'],
+                            'uptime': entry['uptime'],
+                            'version': entry['version'],
+                            'serial_number': serial_number,
+                            'hardware': hardware_item,
+                        }
+                        output_parsed_tmp.append(new_entry)
+                output_parsed = output_parsed_tmp
+
+            return output_parsed
+
+        except Exception as exception:
+            print(f"{Colors.NOK_RED}[{device_information.hostname}]{Colors.END} Couldn't parse the output of the command: {textfsm_args['command']}")
+            print(exception)
+            return []
 
     @write_to_file
     def generate_data_dict(self) -> dict:
@@ -317,6 +465,27 @@ class Client:
         # Replace the device object list by a device dict list
         client_dict['device_list'] = device_list
         return client_dict
+
+    @write_to_file
+    def nornir_generate_config_parsed(self, script_data: dict) -> dict:
+        
+        output_parsed_dict = defaultdict(list)  # Using defaultdict to handle missing keys gracefully
+
+        for config_info, config_info_result in script_data['get_configs'].items():
+            output_parsed_dict[config_info] = defaultdict(list)
+            for device, device_result in config_info_result.items():  # Handling missing 'device_list'
+                merged_output = {
+                    'device_hostname': device.split('(')[0].strip(),
+                    'device_ip_address': device.split('(')[1].split(')')[0].strip()
+                }
+                for command, command_result in device_result.items():
+                    if 'output_parsed' in command_result.keys() and command_result['output_parsed'] != None:
+                        for output_parsed in command_result['output_parsed']:
+                            output_parsed_dict[config_info][command.replace(' ', '_')].append({**merged_output, **output_parsed})
+                    else:
+                        output_parsed_dict[config_info][command.replace(' ', '_')].append(merged_output)
+
+        return output_parsed_dict
 
     @write_to_file
     def generate_config_parsed(self, script_data: dict) -> dict:
