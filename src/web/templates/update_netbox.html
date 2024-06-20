@@ -36,7 +36,7 @@
                 <div class="collapse navbar-collapse order-3" id="navbarCollapse">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a href="#" class="nav-link">Get Configurations</a>
+                            <a href="/get_configs" class="nav-link">Get Configurations</a>
                         </li>
                         <li class="nav-item">
                             <a href="/set_configs" class="nav-link">Set Configurations</a>
@@ -66,12 +66,12 @@
                 <div class="container">
                     <div class="row mb-2">
                         <div class="col-sm-6">
-                            <h1 class="m-0">Get Configurations</h1>
+                            <h1 class="m-0">Update Netbox</h1>
                         </div>
                         <div class="col-sm-6">
                             <ol class="breadcrumb float-sm-right">
                                 <li class="breadcrumb-item"><a href="/">Home</a></li>
-                                <li class="breadcrumb-item active">Get Configs</li>
+                                <li class="breadcrumb-item active">Update Netbox</li>
                             </ol>
                         </div>
                     </div>
@@ -89,7 +89,7 @@
                     </div>
                     <div class="row">
                         <div class="col-lg-8">
-                            <div class="card card-info">
+                            <div class="card card-secondary">
                                 <div class="card-header">
                                     <h5 class="card-title m-0">Information Data</h5>
                                 </div>
@@ -119,14 +119,14 @@
                                         </div>
                                         {% endfor %}
                                     </div>
-                                </div>
+                                </div>                               
                                 <div class="card-footer">
-                                    Select the data you want to collect from the devices
+                                    Select the data to update in Netbox, collecting it from the devices
                                 </div>
                             </div>    
                         </div>
                         <div class="col-lg-4">
-                            <div class="card card-outline card-info">
+                            <div class="card card-outline card-secondary">
                                 <div class="card-header">
                                     <h3 class="card-title">
                                         Device Groups
@@ -142,7 +142,7 @@
                                     </div>
                                 </div>                            
                             </div>
-                            <div class="card card-outline card-info" id="informationDataCard">
+                            <div class="card card-outline card-secondary" id="informationDataCard">
                                 <div class="card-header" id="refreshInformationData">
                                     <h3 class="card-title">
                                         Information Data <small>(selected)</small>
@@ -158,40 +158,13 @@
                 </div>
             </div>
         </div>
-        <div class="modal" id="runGetConfigsModal">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <!-- Modal Header -->
-                    <div class="modal-header">
-                        <h4 class="modal-title">Run Get Configurations</h4>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;"><span aria-hidden="true">×</span></button>
-                    </div>
-                    <!-- Modal body -->
-                    <div class="modal-body">
-                        <h5 style="color: #0C7285;">Device Groups</h5>
-                        <div id="selectedDeviceGroupsModal"></div>
-                        <hr>
-                        <h5 style="color: #0C7285;">Information Data</h5>
-                        <div id="informationDataModal"></div>
-                    </div>
-                    <!-- Modal footer -->
-                    <div class="modal-footer">
-                        <form id="runGetConfigsForm" action="/run_get_configs" method="POST">
-                            <input type="hidden" id="selectedDeviceGroupsFlask" name="selectedDeviceGroupsFlask">
-                            <button type="button" class="btn btn-success" data-dismiss="modal" id="runScriptBtn">Run Script</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-   
+    
         <!-- Footer -->
-        <!-- <footer class="main-footer">
+        <footer class="main-footer">
             <div class="float-right d-none d-sm-block">
-                <b>Version</b> 3.1.0
+                <b>Version</b> 2.0.1
             </div>
-            <strong>&copy; 2022 AdminLTE.io</strong> All rights reserved. -->
-        <!-- </footer> -->
+        </footer>
     </div>
     <!-- JavaScript at the bottom of the page for faster page loading -->
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
@@ -386,7 +359,6 @@
             listElement.appendChild(ul)
         });
     
-    </script>    
-    
+    </script>
 </body>
 </html>

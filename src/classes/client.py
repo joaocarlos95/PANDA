@@ -239,10 +239,15 @@ class Client:
                 print(f"{Colors.OK_GREEN}[{task.host.hostname}]{Colors.END} Running command: {command}")
 
                 try:
+                    # Get device prompt in order to use it as expect_string when running a command
+                    connection = task.host.get_connection('netmiko', task.nornir.config)
+                    prompt = connection.find_prompt()
+                    # Run the command in the device
                     result = task.run(
                         name=command,
                         task=netmiko_send_command,
-                        command_string=command
+                        command_string=command,
+                        expect_string=prompt
                     )
                 except Exception as exception:
                     print(exception)
@@ -333,7 +338,8 @@ class Client:
             config_info_result_serialized = ResultSerializer(config_info_result, add_details=True)
             for host, host_result in config_info_result_serialized.items():
                 del host_result[config_info]
-                del host_result['save_to_file']
+                if 'save_to_file' in host_result.keys():
+                    del host_result['save_to_file']
                 hostname = f"{host} ({self.nornir.inventory.hosts[host].hostname})"
 
                 command_result_dict = {}

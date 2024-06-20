@@ -37,7 +37,6 @@ def raise_exception(exception: str) -> None:
 
 if __name__ == '__main__':
     start_time = time.time()
-    validations = {'yes': True, 'y': True, 'no': False, 'n': False}
 
     # Create a new client object and a new device object
     client = Client(ROOT_DIR, CLIENT_NAME)

@@ -1,4 +1,5 @@
 import os
+import pathlib
 import time
 import yaml
 from collections import defaultdict
@@ -7,10 +8,11 @@ from nornir.core.filter import F
 
 from src.classes.client import Client
 from src.classes.colors import Colors
+from src.classes.netbox import Netbox
 
 
 CLIENT_NAME = "ANA Aeroportos"
-ROOT_DIRECTORY = "C:/Users/jlcosta/OneDrive - A2itwb Tecnologia S.A/01. Clientes/ANA Aeroportos/04. Automation"
+ROOT_DIRECTORY = f"{pathlib.Path(__file__).parent.resolve()}"
 CONFIG_OPTIONS = {
     'set_configs': {
         'Authentication': [
@@ -75,6 +77,15 @@ def generate_configs():
         template_context['root_directory'] = ROOT_DIRECTORY
     return render_template('generate_configs.html', config_options=CONFIG_OPTIONS['set_configs'], **template_context)
 
+@app.route('/update_netbox')
+def update_netbox():
+    template_context = {}
+    if CLIENT_NAME is not None:
+        template_context['client_name'] = CLIENT_NAME
+    if ROOT_DIRECTORY is not None:
+        template_context['root_directory'] = ROOT_DIRECTORY
+    return render_template('update_netbox.html', config_options=CONFIG_OPTIONS['upd_netbox'], device_groups=CLIENT.nornir.inventory.groups, **template_context)
+
 @app.route('/update_device_group_options', methods=['POST'])
 def update_device_group_options():
     global CONFIG_OPTIONS
@@ -117,7 +128,7 @@ def run_get_configs():
     nornir_group_filter = F(groups__contains=selected_groups[0])
     for group in selected_groups[1:]:
         nornir_group_filter |= F(groups__contains=group)
-   
+
     nornir_filtered = CLIENT.nornir.filter(nornir_group_filter)
     CLIENT.nornir_get_configs(get_configs_info=get_configs_info, nornir_filtered=nornir_filtered)
 
@@ -179,18 +190,30 @@ def init_config_options() -> None:
         config = yaml.safe_load(nornir_config)
 
         get_configs = defaultdict(list)
-        # Iterate through all the user-defined options in the config.yaml file
+        # Iterate through all the user-defined options in the config.yaml file, specifically for the PANDA
         for key, value in config['user_defined']['PANDA_data'].items():
             # Append the current option to the corresponding group
             get_configs[value['group']].append({
-                # ID, Name and Label of the option are the same
                 'id': key,
                 'name': key,
                 'label': value['label'],
                 'status': value['status']
             })
 
+        upd_netbox = defaultdict(list)
+        # Iterate through all the user-defined options in the config.yaml file, specifically for the Netbox
+        for key, value in config['user_defined']['Netbox_data'].items():
+            # Append the current option to the corresponding group
+            upd_netbox[value['group']].append({
+                'id': key,
+                'name': key,
+                'label': value['label'],
+                'status': value['status'],
+                'get_configs': value['PANDA_reference']
+            })
+
     CONFIG_OPTIONS['get_configs'] = dict(get_configs)
+    CONFIG_OPTIONS['upd_netbox'] = dict(upd_netbox)
 
 
 def init_client() -> None:
@@ -204,8 +227,113 @@ def init_client() -> None:
     CLIENT = Client(ROOT_DIRECTORY, CLIENT_NAME)
 
 
+def init_netbox() -> None:
+    ''' '''
+    global NETBOX
+
+    url = 'https://10.168.10.81:443'
+    token = '4550ebdc9e1f2f5652fb77fa5a2b0def73cac0a7'
+
+    NETBOX = Netbox(url, token)
+
+
+def update_netbox_device(site, output_parsed) -> None:
+
+    device_model_db = CLIENT.nornir.config.user_defined['models_database']
+    for get_configs_info_result in output_parsed.values():
+        for command_result in get_configs_info_result.values():
+            for device in command_result:
+                try:
+                    model = device['hardware'][0]
+                    if model not in device_model_db.keys():
+                        print(f"{Colors.NOK_RED}[Netbox]{Colors.END} Device model {model} not found in the models_database")
+                        continue
+                    # Add new device to Netbox
+                    NETBOX.add_device(
+                        role=device_model_db[model]['role'],
+                        model=model,
+                        site=site,
+                        hostname=device['device_hostname'],
+                        serial_number=device['serial_number'][0]
+                    )
+
+                except Exception as exception:
+                    # If device type doesn't exist in Netbox, create it and add again the device     
+                    if "Device type doesn't exist" in str(exception):         
+                        NETBOX.add_device_type(
+                            manufacturer=device_model_db[model]['manufacturer'],
+                            model=model,
+                            u_height=device_model_db[model]['u_height'],
+                            is_full_depth=device_model_db[model]['is_full_depth'],
+                            platform=device_model_db[model]['platform']
+                        )
+                        NETBOX.add_device(
+                            role=device_model_db[model]['role'],
+                            model=model,
+                            site=site,
+                            hostname=device['device_hostname'],
+                            serial_number=device['serial_number'][0]
+                        )
+                    else:
+                        print(exception)
+
+def add_device_netbox(site:str, model:str, hostname:str, serial_number:str) -> None:
+
+    device_model_db = CLIENT.nornir.config.user_defined['models_database'][model]
+    data = {
+        "role": NETBOX.get_device_role_id(device_model_db['role']),
+        "manufacturer": device_model_db['manufacturer'],
+        "device_type": NETBOX.get_device_type_id(model),
+        "status": "active",
+        "site": NETBOX.get_site_id(site),
+        "name": hostname,
+        "serial": serial_number,
+    }
+    NETBOX.add_device(data)
+
+def add_device_type_netbox(site:str, model:str, hostname:str, serial_number:str) -> None:
+
+    device_model_db = CLIENT.nornir.config.user_defined['models_database'][model]
+    data = {
+        "role": NETBOX.get_device_role_id(device_model_db['role']),
+        "manufacturer": device_model_db['manufacturer'],
+        "device_type": NETBOX.get_device_type_id(model),
+        "status": "active",
+        "site": NETBOX.get_site_id(site),
+        "name": hostname,
+        "serial": serial_number,
+    }
+    NETBOX.add_device(data)
+
+
+
 if __name__ == "__main__":
 
     init_config_options()
     init_client()
-    app.run(debug=True)
+    init_netbox()
+
+    # 
+    # TEMPORARY
+    #
+
+    # get_configs_info = ['device_information']
+    # nornir_group_filter = F(groups__contains='extreme_exos')
+    # nornir_filtered = CLIENT.nornir.filter(nornir_group_filter)
+    # CLIENT.nornir_get_configs(get_configs_info=get_configs_info, nornir_filtered=nornir_filtered)
+    # script_data = CLIENT.nornir_generate_data_dict()
+    # output_parsed = CLIENT.nornir_generate_config_parsed(script_data)
+
+    # manufacturer = 'Extreme Networks'
+    # platform = 'extreme_exos'
+    # role = 'Access Switch'
+    # site = 'LIS LAN'
+
+    # update_netbox_device(site, output_parsed)
+
+    #
+    # TEMPORARY
+    #
+
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
