@@ -7,3 +7,6 @@
 [submodule "dep/bootstrap-duallistbox"]
 	path = dep/bootstrap-duallistbox
 	url = https://github.com/istvan-ujjmeszaros/bootstrap-duallistbox.git
+[submodule "dep/jinja2config"]
+	path = dep/jinja2config
+	url = https://github.com/joaocarlos95/Jinja2Config.git
