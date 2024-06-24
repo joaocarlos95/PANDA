@@ -306,14 +306,13 @@ def add_device_type_netbox(site:str, model:str, hostname:str, serial_number:str)
     NETBOX.add_device(data)
 
 
-
-if __name__ == "__main__":
+def main():
 
     init_config_options()
     init_client()
     init_netbox()
 
-    # 
+    ################################################################################
     # TEMPORARY
     #
 
@@ -333,7 +332,11 @@ if __name__ == "__main__":
 
     #
     # TEMPORARY
-    #
+    ################################################################################
 
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
+
+
+if __name__ == "__main__":
+    main()

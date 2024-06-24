@@ -1,12 +1,6 @@
 [submodule "dep/ntc-templates"]
 	path = dep/ntc-templates
 	url = https://github.com/networktocode/ntc-templates.git
-[submodule "dep/adminlte"]
-	path = dep/adminlte
-	url = https://github.com/ColorlibHQ/AdminLTE.git
-[submodule "dep/bootstrap-duallistbox"]
-	path = dep/bootstrap-duallistbox
-	url = https://github.com/istvan-ujjmeszaros/bootstrap-duallistbox.git
 [submodule "dep/jinja2config"]
 	path = dep/jinja2config
 	url = https://github.com/joaocarlos95/Jinja2Config.git
